@@ -31,6 +31,7 @@ runs:
       run: |
         mkdir -p central-checkov-policies
         mv checkout-central-checkov-policies/central-checkov-policies central-checkov-policies
+        mv checkout-central-checkov-policies/finops-policies finops-policies
 
     - name: Run Checkov Scan
       id: checkov_scan

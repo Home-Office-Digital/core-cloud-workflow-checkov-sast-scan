@@ -59,6 +59,7 @@ jobs:
         run: |
           mkdir -p central-checkov-policies
           mv checkout-central-checkov-policies/central-checkov-policies central-checkov-policies
+          mv checkout-central-checkov-policies/finops-policies finops-policies
 
       - uses: aws-actions/configure-aws-credentials@v4
         id: assume
@@ -109,7 +110,7 @@ jobs:
           # soft_fail_on: CKV_AWS_EXAMPLE1,CKV_AWS_EXAMPLE2
           directory: ${{ github.workspace }}/outputs/${{ inputs.path }}
           output_file_path: results-plan.sarif
-          external_checks_dirs: central-checkov-policies
+          external_checks_dirs: central-checkov-policies,finops-policies
           skip_check: CKV_CCL_CUSTOM_001,CKV_CCL_CUSTOM_002
           download_external_modules: true
 
