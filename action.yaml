@@ -42,7 +42,7 @@ runs:
         soft_fail: true
         directory: ${{ inputs.path }}
         output_file_path: results.sarif
-        external_checks_dirs: central-checkov-policies
+        external_checks_dirs: central-checkov-policies,finops-policies
         skip_check: CKV_CCL_CUSTOM_001,CKV_CCL_CUSTOM_002
         download_external_modules: true
 
@@ -51,3 +51,16 @@ runs:
       with:
         sarif_file: 'results.sarif'
         category: 'checkov-sast-scan'
+
+    - name: Run Checkov Scan (FinOps policies only)
+      id: checkov_scan_finops
+      uses: bridgecrewio/checkov-action@v12
+      with:
+        output_format: cli
+        quiet: true
+        soft_fail: true
+        directory: ${{ inputs.path }}
+        framework: terraform_plan
+        external_checks_dirs: finops-policies
+        download_external_modules: true
+
