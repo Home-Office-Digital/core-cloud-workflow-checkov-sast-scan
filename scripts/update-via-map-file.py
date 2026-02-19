@@ -52,6 +52,41 @@ def load_severity_map(csv_path):
     print(f"Loaded {len(mapping)} rules from Checkov CSV file")
     return mapping
 
+def _update_rule_severity(rule, severity_label):
+    """Helper to update a single SARIF rule dict."""
+    new_score = SEVERITY_TO_SCORE.get(severity_label, "0.0")
+    new_level = SEVERITY_TO_LEVEL.get(severity_label, "note")
+
+    # Use dict.setdefault to avoid deeply nested if-statements
+    rule.setdefault("properties", {})["security-severity"] = new_score
+    rule.setdefault("defaultConfiguration", {})["level"] = new_level
+
+def _process_sarif_runs(runs, severity_map):
+    """Helper to iterate through runs and apply severity map."""
+    updates_count = 0
+    missing_ids = set()
+
+    for run in runs:
+        rules = run.get("tool", {}).get("driver", {}).get("rules", [])
+
+        for rule in rules:
+            rule_id = rule.get("id")
+            
+            # Guard clause: Skip if no rule ID or not a Checkov rule
+            if not rule_id or not rule_id.startswith(("CKV_", "CKV2_")):
+                continue
+            
+            # Guard clause: Track missing mappings
+            if rule_id not in severity_map:
+                missing_ids.add(rule_id)
+                continue
+                
+            severity_label = severity_map[rule_id]
+            _update_rule_severity(rule, severity_label)
+            updates_count += 1
+
+    return updates_count, missing_ids
+
 def update_sarif(input_path, output_path, severity_map):
     try:
         with open(input_path, 'r', encoding='utf-8') as f:
@@ -60,43 +95,9 @@ def update_sarif(input_path, output_path, severity_map):
         print(f"SARIF file {input_path} not found")
         return
 
-    updates_count = 0
-    missing_ids = set()
-    
-    # Iterate through the sarif data
-    for run in sarif_data.get("runs", []):
-        tool = run.get("tool", {})
-        driver = tool.get("driver", {})
-        rules = driver.get("rules", [])
-
-        for rule in rules:
-            rule_id = rule.get("id")
-            if not rule_id:
-                continue
-
-            # Checkov IDs are prefixed with either CKV_ or CKV2_
-            is_checkov_rule = rule_id.startswith(("CKV_", "CKV2_"))
-            
-            if is_checkov_rule:
-                if rule_id in severity_map:
-                    severity_label = severity_map[rule_id]
-                    
-                    new_score = SEVERITY_TO_SCORE.get(severity_label, "0.0")
-                    new_level = SEVERITY_TO_LEVEL.get(severity_label, "note")
-
-                    # Create 'security-severity' and set the score
-                    if "properties" not in rule:
-                        rule["properties"] = {}
-                    rule["properties"]["security-severity"] = new_score
-
-                    # 4. Update 'level' according to the severity score
-                    if "defaultConfiguration" not in rule:
-                        rule["defaultConfiguration"] = {}
-                    rule["defaultConfiguration"]["level"] = new_level
-                    
-                    updates_count += 1
-                else:
-                    missing_ids.add(rule_id)
+    # Process runs using helper function to reduce complexity
+    runs = sarif_data.get("runs", [])
+    updates_count, missing_ids = _process_sarif_runs(runs, severity_map)
 
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(sarif_data, f, indent=2)
@@ -106,6 +107,37 @@ def update_sarif(input_path, output_path, severity_map):
         
     print(f"{updates_count} rules updated in {output_path}")
 
+def _process_text_lines(lines, severity_map):
+    """Helper to process text lines and inject severity labels."""
+    updated_lines = []
+    updates_count = 0
+    re_check_line = re.compile(r"^Check:\s+(CKV2?_[A-Z0-9_]+|CCL_[A-Z0-9_]+)")
+
+    for i, line in enumerate(lines):
+        updated_lines.append(line)
+        
+        match = re_check_line.search(line)
+        if not match:
+            continue
+            
+        current_check_id = match.group(1)
+        if current_check_id not in severity_map:
+            continue
+            
+        # Check the next 2 lines for the Severity: line
+        next_line = lines[i+1] if i+1 < len(lines) else ""
+        second_line = lines[i+2] if i+2 < len(lines) else ""
+
+        if "Severity:" in next_line or "Severity:" in second_line:
+            continue
+
+        # If it passed all guards, inject the severity
+        severity_label = severity_map[current_check_id]
+        updated_lines.append(f"\tSeverity: {severity_label}\n")
+        updates_count += 1
+        
+    return updated_lines, updates_count
+
 def update_text_report(input_path, output_path, severity_map):
     try:
         with open(input_path, 'r', encoding='utf-8') as f:
@@ -114,29 +146,8 @@ def update_text_report(input_path, output_path, severity_map):
         print(f"Text file {input_path} not found")
         return
 
-    updated_lines = []
-    updates_count = 0
-    
-    # Regex to find Check: line. Must have prefix of either CKV_ CKV2_ or CCL_
-    re_check_line = re.compile(r"^Check:\s+(CKV2?_[A-Z0-9_]+|CCL_[A-Z0-9_]+)")
-
-    for i, line in enumerate(lines):
-        updated_lines.append(line)
-        
-        match = re_check_line.search(line)
-        if match:
-            current_check_id = match.group(1)
-            
-            # Check the next 2 lines for the Severity: line and update it with the relevant label
-            next_line = lines[i+1] if i+1 < len(lines) else ""
-            second_line = lines[i+2] if i+2 < len(lines) else ""
-
-            if "Severity:" not in next_line and "Severity:" not in second_line:
-                if current_check_id in severity_map:
-                    severity_label = severity_map[current_check_id]
-                    new_line = f"\tSeverity: {severity_label}\n"
-                    updated_lines.append(new_line)
-                    updates_count += 1
+    # Process lines using helper function to reduce complexity
+    updated_lines, updates_count = _process_text_lines(lines, severity_map)
 
     with open(output_path, 'w', encoding='utf-8') as f:
         f.writelines(updated_lines)
