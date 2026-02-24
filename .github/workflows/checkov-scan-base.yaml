@@ -90,7 +90,7 @@ jobs:
         run: sudo chown -R $USER:$USER results.sarif
       
       - name: Process SARIF file
-        run: python3 -u checkout-checkov-mapping-updates/scripts/update_via_map_file.py
+        run: python3 -u checkout-checkov-mapping-updates/scripts/update_via_map_file_new.py
 
       - name: Upload SARIF file (Source Code)
         if: ${{ success() || failure() }}
