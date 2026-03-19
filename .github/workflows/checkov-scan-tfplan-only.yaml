@@ -24,7 +24,7 @@ on:
         description: 'Set if using GHES instance'
         type: string
         required: false
-        default: 'UKHomeOffice'
+        default: 'Home-Office-Digital'
       TF_VAR_source-repo:
         required: true
         type: string
@@ -47,7 +47,7 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Run Checkov TFPlan Only Scan
-        uses: UKHomeOffice/core-cloud-workflow-checkov-sast-scan/actions/tfplan@main
+        uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/actions/tfplan@main
         with:
           plan_role: ${{ inputs.plan_role }} 
           path: ${{ inputs.path }}
