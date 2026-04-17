@@ -33,6 +33,10 @@ inputs:
     type: string
   account_id:
     required: true
+  terragrunt_parallelism:
+    description: 'Max number of concurrent Terragrunt modules'
+    required: false
+    default: '4'
 
 runs:
   using: 'composite'
@@ -91,7 +95,7 @@ runs:
         tf_version: 1.9.3
         tg_version: 0.59.6
         tg_dir: ./${{ inputs.path }}
-        tg_command: 'run-all plan --terragrunt-out-dir /github/workspace/outputs/${{ inputs.path }} --terragrunt-json-out-dir /github/workspace/outputs/${{ inputs.path }}'
+        tg_command: 'run-all plan --terragrunt-parallelism ${{ inputs.terragrunt_parallelism }} --terragrunt-out-dir /github/workspace/outputs/${{ inputs.path }} --terragrunt-json-out-dir /github/workspace/outputs/${{ inputs.path }}'
       env:
         TF_VAR_source-repo: ${{ inputs.TF_VAR_source-repo }}
         TF_VAR_env_name: ${{ inputs.env_name }}

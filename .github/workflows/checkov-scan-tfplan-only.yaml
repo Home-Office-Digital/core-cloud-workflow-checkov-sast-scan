@@ -28,6 +28,11 @@ on:
       TF_VAR_source-repo:
         required: true
         type: string
+      terragrunt_parallelism:
+        description: 'Max number of concurrent Terragrunt modules'
+        required: false
+        type: string
+        default: '4'
     secrets:
       account_id:
         required: false
@@ -47,10 +52,12 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Run Checkov TFPlan Only Scan
-        uses: UKHomeOffice/core-cloud-workflow-checkov-sast-scan/actions/tfplan@main
+        uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/actions/tfplan@main
+        timeout-minutes: 20
         with:
-          plan_role: ${{ inputs.plan_role }} 
+          plan_role: ${{ inputs.plan_role }}
           path: ${{ inputs.path }}
           env_name: ${{ inputs.env_name }}
           TF_VAR_source-repo: ${{ inputs.TF_VAR_source-repo }}
           account_id: ${{ secrets.account_id }}
+          terragrunt_parallelism: ${{ inputs.terragrunt_parallelism }}
