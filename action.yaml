@@ -55,7 +55,6 @@ runs:
       with:
         output_format: cli,sarif
         quiet: true
-        soft_fail: true
         directory: ${{ inputs.path }}
         output_file_path: results.sarif
         external_checks_dirs: central-checkov-policies
