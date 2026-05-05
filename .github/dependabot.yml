@@ -1,7 +1,25 @@
 version: 2
 updates:
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "daily"
-    open-pull-requests-limit: 10
+    # Enable Github Action updates
+    - package-ecosystem: "github-actions"
+      directory: "/"
+      schedule:
+          interval: "daily"
+      commit-message:
+          prefix: "chore(GHA)"
+      labels:
+          - "dependencies"
+          - "patch"
+          - "actions"
+
+    # Enable PIP updates for Python Projects
+    - package-ecosystem: "pip"
+      directory: "/"
+      schedule:
+          interval: "daily"
+      commit-message:
+          prefix: "chore(Python)"
+      labels:
+          - "dependencies"
+          - "patch"
+          - "python"
