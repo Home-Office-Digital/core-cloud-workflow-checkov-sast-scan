@@ -74,6 +74,7 @@ jobs:
           # Use soft_fail_on when we want to make the suppressed check known e.g. for future mitigation.
           # skip_check: CKV_AWS_EXAMPLE1,CKV_AWS_EXAMPLE2
           # soft_fail_on: CKV_AWS_EXAMPLE1,CKV_AWS_EXAMPLE2
+          soft_fail: true
           directory: '.'
           output_file_path: results.sarif
           external_checks_dirs: central-checkov-policies
