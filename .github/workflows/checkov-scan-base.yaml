@@ -92,6 +92,8 @@ jobs:
         shell: bash
         run: |
           cat results.sarif/results_sarif.sarif | jq -C '.' | less -R
+          tree .
+          cat results.sarif/results.txt
  
       - name: Process SARIF file
         run: python3 -u checkout-checkov-mapping-updates/scripts/update_via_map_file.py
@@ -99,7 +101,9 @@ jobs:
       - name: Debug2
         shell: bash
         run: |
-          cat results.sarif/results_sarif.sarif | jq -C '.' | less -R
+          cat results.sarif/results_enriched.sarif | jq -C '.' | less -R
+          tree .
+          cat results.sarif/results_updated.txt
 
       - name: Upload SARIF file (Source Code)
         if: ${{ success() || failure() }}
