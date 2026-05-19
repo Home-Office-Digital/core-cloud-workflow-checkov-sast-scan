@@ -92,8 +92,7 @@ jobs:
         shell: bash
         run: |
           cat results.sarif/results_sarif.sarif | jq -C '.' | less -R
-          tree .
-          cat results.sarif/results.txt
+          cat results.sarif/results_cli.txt
  
       - name: Process SARIF file
         run: python3 -u checkout-checkov-mapping-updates/scripts/update_via_map_file.py
