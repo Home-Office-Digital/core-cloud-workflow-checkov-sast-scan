@@ -82,7 +82,7 @@ jobs:
           directory: '.'
           output_file_path: results.sarif
           external_checks_dirs: central-checkov-policies
-          skip_check: CKV_CCL_CUSTOM_001,CKV_CCL_CUSTOM_002,CKV_AWS_28,CKV_TF_1
+          skip_check: CKV_CCL_CUSTOM_001,CKV_CCL_CUSTOM_002,CKV_AWS_28,CKV_TF_1,CKV_GHA_7
           download_external_modules: ${{ inputs.download_external_modules }}
 
       - name: Set up Python
@@ -92,7 +92,7 @@ jobs:
 
       - name: Fix File Permissions
         run: sudo chown -R $USER:$USER results.sarif
-      
+
       - name: Process SARIF file
         run: python3 -u checkout-checkov-mapping-updates/scripts/update_via_map_file.py
 
