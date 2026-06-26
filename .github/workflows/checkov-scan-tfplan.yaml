@@ -43,6 +43,10 @@ on:
         required: false
         type: string
         default: '4'
+      repo_root_for_plan_enrichment:
+        description: 'Path to the Terraform root directory'
+        required: false
+        type: string
     secrets:
       account_id:
         required: false
@@ -134,6 +138,7 @@ jobs:
           external_checks_dirs: central-checkov-policies
           skip_check: CKV_CCL_CUSTOM_001,CKV_CCL_CUSTOM_002,CKV_AWS_28,CKV_TF_1
           download_external_modules: true
+          repo_root_for_plan_enrichment: ${{ inputs.repo_root_for_plan_enrichment }}
 
       - name: Run Checkov Scan (FinOps policies only)
         if: ${{ inputs.plan_role != '' }}
