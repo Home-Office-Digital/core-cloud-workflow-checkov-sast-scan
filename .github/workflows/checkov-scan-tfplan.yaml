@@ -47,6 +47,11 @@ on:
         description: 'Path to the Terraform root directory'
         required: false
         type: string
+      deep_analysis:
+        description: 'Switch to true if using repo_root_for_plan_enrichment'
+        required: false
+        type: boolean
+        default: false
     secrets:
       account_id:
         required: false
@@ -140,6 +145,7 @@ jobs:
           framework: terraform_plan
           download_external_modules: true
           repo_root_for_plan_enrichment: ${{ inputs.repo_root_for_plan_enrichment }}
+          deep_analysis: ${{ inputs.deep_analysis }}
 
       - name: Run Checkov Scan (FinOps policies only)
         if: ${{ inputs.plan_role != '' }}

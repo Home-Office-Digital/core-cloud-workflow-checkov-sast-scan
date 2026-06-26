@@ -30,6 +30,10 @@ inputs:
     required: false
     default: 'false'
     type: string
+  deep_analysis:
+    description: 'Switch to true if using repo_root_for_plan_enrichment'
+    required: false
+    type: string
 
 runs:
   using: 'composite'
@@ -74,6 +78,7 @@ runs:
         skip_check: CKV_CCL_CUSTOM_001,CKV_CCL_CUSTOM_002,CKV_AWS_28,CKV_TF_1
         framework: ${{ inputs.framework }}
         repo_root_for_plan_enrichment: ${{ inputs.repo_root_for_plan_enrichment }}
+        deep_analysis: ${{ inputs.deep_analysis }}
 
     - name: Set up Python
       uses: actions/setup-python@v4
