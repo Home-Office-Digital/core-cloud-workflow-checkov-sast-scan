@@ -73,7 +73,6 @@ runs:
         external_checks_dirs: central-checkov-policies
         skip_check: CKV_CCL_CUSTOM_001,CKV_CCL_CUSTOM_002,CKV_AWS_28,CKV_TF_1
         framework: ${{ inputs.framework }}
-        download_external_modules: ${{ inputs.download_external_modules }}
         repo_root_for_plan_enrichment: ${{ inputs.repo_root_for_plan_enrichment }}
 
     - name: Set up Python
