@@ -28,6 +28,7 @@ inputs:
   download_external_modules:
     description: 'Download external Terraform modules to honour inline skip annotations.'
     required: false
+    default: 'false'
     type: string
 
 runs:
