@@ -58,6 +58,32 @@ runs:
         mkdir -p central-checkov-policies
         mv checkout-central-checkov-policies/central-checkov-policies central-checkov-policies
 
+    - name: Resolve repo-scoped Checkov exceptions
+      id: resolve_exceptions
+      shell: bash
+      run: |
+        REPO="${{ github.repository }}"
+        GLOBAL_SKIP="CKV_CCL_CUSTOM_001,CKV_CCL_CUSTOM_002,CKV_AWS_28,CKV_TF_1"
+        EXCEPTIONS_FILE="checkout-central-checkov-policies/repo-exceptions.json"
+
+        REPO_SKIP=""
+        REPO_SOFT_FAIL_ON=""
+
+        if [ -f "$EXCEPTIONS_FILE" ]; then
+          REPO_SKIP=$(jq -r --arg repo "$REPO" \
+            '.exceptions[$repo].skip_check // [] | map(.id) | join(",")' \
+            "$EXCEPTIONS_FILE")
+          REPO_SOFT_FAIL_ON=$(jq -r --arg repo "$REPO" \
+            '.exceptions[$repo].soft_fail_on // [] | map(.id) | join(",")' \
+            "$EXCEPTIONS_FILE")
+        fi
+
+        COMBINED_SKIP="$GLOBAL_SKIP"
+        [ -n "$REPO_SKIP" ] && COMBINED_SKIP="${COMBINED_SKIP},${REPO_SKIP}"
+
+        echo "skip_check=${COMBINED_SKIP}" >> "$GITHUB_OUTPUT"
+        echo "soft_fail_on=${REPO_SOFT_FAIL_ON}" >> "$GITHUB_OUTPUT"
+
     - name: Checkout Checkov Map File
       uses: actions/checkout@v4
       with:
@@ -107,19 +133,15 @@ runs:
       id: checkov_scan_plan
       uses: bridgecrewio/checkov-action@v12
       with:
-       output_format: cli,sarif
-       quiet: true
-       # Enabling soft_fail temporarily for easier adoption. Once repos are compliant, remove this and use skip_check or soft_fail_on containing the global suppression list agreed by the SWG.
-       soft_fail: false
-       # Use skip_check if we don't want the check to appear in the console.
-       # Use soft_fail_on when we want to make the suppressed check known e.g. for future mitigation.
-       # skip_check: CKV_AWS_EXAMPLE1,CKV_AWS_EXAMPLE2
-       # soft_fail_on: CKV_AWS_EXAMPLE1,CKV_AWS_EXAMPLE2
-       directory: ${{ github.workspace }}/outputs/${{ inputs.path }}
-       output_file_path: results-plan.sarif
-       external_checks_dirs: central-checkov-policies
-       skip_check: CKV_CCL_CUSTOM_001,CKV_CCL_CUSTOM_002,CKV_AWS_28,CKV_TF_1
-       download_external_modules: true
+        output_format: cli,sarif
+        quiet: true
+        soft_fail: false
+        directory: ${{ github.workspace }}/outputs/${{ inputs.path }}
+        output_file_path: results-plan.sarif
+        external_checks_dirs: central-checkov-policies
+        skip_check: ${{ steps.resolve_exceptions.outputs.skip_check }}
+        soft_fail_on: ${{ steps.resolve_exceptions.outputs.soft_fail_on }}
+        download_external_modules: true
 
     - name: Set up Python
       uses: actions/setup-python@v4

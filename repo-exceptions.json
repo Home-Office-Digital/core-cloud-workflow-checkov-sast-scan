@@ -1,0 +1,11 @@
+{
+  "_comment": "Centrally-managed per-repo Checkov exceptions. All entries require SWG approval and a documented justification per check.",
+  "exceptions": {
+    "Home-Office-Digital/core-cloud-innovation-sandbox-config": {
+      "skip_check": [
+        { "id": "CKV_AWS_79", "justification": "TODO: Link to SWG Confluence page" }
+      ],
+      "soft_fail_on": []
+    }
+  }
+}
