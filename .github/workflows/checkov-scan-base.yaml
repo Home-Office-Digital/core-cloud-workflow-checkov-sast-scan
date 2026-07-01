@@ -100,12 +100,11 @@ jobs:
         with:
           output_format: cli,sarif
           quiet: true
-          soft_fail: false
+          soft_fail: true
           directory: '.'
           output_file_path: results.sarif
           external_checks_dirs: central-checkov-policies
           skip_check: ${{ steps.resolve_exceptions.outputs.skip_check }}
-          soft_fail_on: ${{ steps.resolve_exceptions.outputs.soft_fail_on }}
           download_external_modules: ${{ inputs.download_external_modules }}
 
       - name: Set up Python
@@ -118,6 +117,12 @@ jobs:
       
       - name: Process SARIF file
         run: python3 -u checkout-checkov-mapping-updates/scripts/update_via_map_file.py
+
+      - name: Enforce severity-gated exemptions
+        run: python3 -u checkout-checkov-mapping-updates/scripts/enforce_severity_gate.py
+        env:
+          SARIF_DIRS: "results.sarif"
+          SOFT_FAIL_ON: ${{ steps.resolve_exceptions.outputs.soft_fail_on }}
 
       - name: Determine commit SHA for SARIF upload
         if: ${{ github.event_name == 'pull_request' }}

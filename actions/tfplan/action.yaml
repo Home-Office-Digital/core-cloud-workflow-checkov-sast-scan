@@ -135,12 +135,11 @@ runs:
       with:
         output_format: cli,sarif
         quiet: true
-        soft_fail: false
+        soft_fail: true
         directory: ${{ github.workspace }}/outputs/${{ inputs.path }}
         output_file_path: results-plan.sarif
         external_checks_dirs: central-checkov-policies
         skip_check: ${{ steps.resolve_exceptions.outputs.skip_check }}
-        soft_fail_on: ${{ steps.resolve_exceptions.outputs.soft_fail_on }}
         download_external_modules: true
 
     - name: Set up Python
@@ -159,6 +158,14 @@ runs:
       run: python3 -u checkout-checkov-mapping-updates/scripts/update_via_map_file.py
       env:
         SARIF_DIRS: "results-plan.sarif"
+
+    - name: Enforce severity-gated exemptions (Plan files)
+      shell: bash
+      if: ${{ inputs.plan_role != '' }}
+      run: python3 -u checkout-checkov-mapping-updates/scripts/enforce_severity_gate.py
+      env:
+        SARIF_DIRS: "results-plan.sarif"
+        SOFT_FAIL_ON: ${{ steps.resolve_exceptions.outputs.soft_fail_on }}
 
     - name: Determine commit SHA for SARIF upload
       if: ${{ inputs.plan_role != '' && github.event_name == 'pull_request' }}
