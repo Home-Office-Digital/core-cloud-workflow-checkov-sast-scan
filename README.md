@@ -10,9 +10,9 @@ This is a reusable workflow for SAST scanning source code and artifacts. This is
 
 There are 2 Checkov reusable workflow files that your workflow can use. NOTE: These are for informational purposes only.
 
-1. [checkov-scan-base.yaml](https://github.com/UKHomeOffice/core-cloud-workflow-checkov-sast-scan/blob/main/.github/workflows/checkov-scan-base.yaml) - For scanning [compatible](https://spacelift.io/blog/what-is-checkov#what-is-checkov) source code at rest.
-2. [checkov-scan-tfplan.yaml](https://github.com/UKHomeOffice/core-cloud-workflow-checkov-sast-scan/blob/main/.github/workflows/checkov-scan-tfplan.yaml) - To be used for scanning Terraform plan files and source code.
-3. [checkov-scan-tfplan-only.yaml](https://github.com/UKHomeOffice/core-cloud-workflow-checkov-sast-scan/blob/main/.github/workflows/checkov-scan-tfplan-only.yaml) - To be used for scanning just the Terraform plan files.
+1. [checkov-scan-base.yaml](https://github.com/Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/blob/main/.github/workflows/checkov-scan-base.yaml) - For scanning [compatible](https://spacelift.io/blog/what-is-checkov#what-is-checkov) source code at rest.
+2. [checkov-scan-tfplan.yaml](https://github.com/Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/blob/main/.github/workflows/checkov-scan-tfplan.yaml) - To be used for scanning Terraform plan files and source code.
+3. [checkov-scan-tfplan-only.yaml](https://github.com/Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/blob/main/.github/workflows/checkov-scan-tfplan-only.yaml) - To be used for scanning just the Terraform plan files.
 
 ## Implementation for source code 
 The simplest config to use is:
@@ -30,7 +30,7 @@ The simplest config to use is:
 
      jobs:
        checkov-scan:
-         uses: UKHomeOffice/core-cloud-workflow-checkov-sast-scan/.github/workflows/checkov-scan-base.yaml@1.5.0
+         uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/.github/workflows/checkov-scan-base.yaml@1.5.0
 
 ## Implementation for Terraform Plan files and source code.
 
@@ -62,7 +62,7 @@ Add the above config into the following directory in your repository `.github/wo
      
      jobs:
        sast-checkov-scan-plan:
-         uses: UKHomeOffice/core-cloud-workflow-checkov-sast-scan/.github/workflows/checkov-scan-tfplan.yaml@1.5.0
+         uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/.github/workflows/checkov-scan-tfplan.yaml@1.5.0
          with:
            # Optional inputs depending on code structure
            path: 'e.g. terraform/environment/sandbox-ops-tooling'
@@ -101,7 +101,7 @@ Add the above config into the following directory in your repository `.github/wo
 
      jobs:
        sast-checkov-scan-tfplan-files:
-         uses: UKHomeOffice/core-cloud-workflow-checkov-sast-scan/.github/workflows/checkov-scan-tfplan-only.yaml@1.14.0
+         uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/.github/workflows/checkov-scan-tfplan-only.yaml@1.14.0
          with:
            # Optional inputs depending on code structure
            plan_role: '<role with permissions for generating a plan>'
@@ -121,14 +121,14 @@ Add the above config into the following directory in your repository `.github/wo
        terragrunt-standard-pipeline:
          # Should always be used to prevent state lock issues with checkov tfplan scan
          needs: [sast-checkov-scan-tfplan-files,sast-sonar-scan]
-         uses: UKHomeOffice/core-cloud-workflow-terragrunt-actions/.github/workflows/standard-pipeline.yml@main
+         uses: Home-Office-Digital/core-cloud-workflow-terragrunt-actions/.github/workflows/standard-pipeline.yml@main
          with:
            github-environment: 'e.g. sandbox-ops-tooling'
            # etc etc 
 
 ## Custom Policies
 
-Core Cloud centrally manages custom policies within this repo. These can be found at [central-checkov-policies](https://github.com/UKHomeOffice/core-cloud-workflow-checkov-sast-scan/central-checkov-policies) and are run against all repos. If you wish to add additional custom policies after developing and testing these locally, please raise a PR and contact Team Sauron who will carry out further testing before merging for general use. Checkov supports policies written in both YAML and Python. Example policies are provided for both formats with IDs CKV_CCL_CUSTOM_001 and CKV_CCL_CUSTOM_002.
+Core Cloud centrally manages custom policies within this repo. These can be found at [central-checkov-policies](https://github.com/Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/central-checkov-policies) and are run against all repos. If you wish to add additional custom policies after developing and testing these locally, please raise a PR and contact Team Sauron who will carry out further testing before merging for general use. Checkov supports policies written in both YAML and Python. Example policies are provided for both formats with IDs CKV_CCL_CUSTOM_001 and CKV_CCL_CUSTOM_002.
 
 ## Composite Action
 
@@ -145,7 +145,7 @@ If you wish to just add a step to your existing workflow logic, you can use the 
           runs-on: ubuntu-latest
           steps:  
             - name: Run Checkov Scan on the source code and existing plan files
-              uses: UKHomeOffice/core-cloud-workflow-checkov-sast-scan@1.5.0
+              uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan@1.5.0
               with:
                 path: '.'
 

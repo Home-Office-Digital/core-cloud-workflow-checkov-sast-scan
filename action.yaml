@@ -16,7 +16,7 @@ inputs:
     description: 'Set if using GHES instance'
     type: string
     required: false
-    default: 'UKHomeOffice'
+    default: 'Home-Office-Digital'
 
 runs:
   using: 'composite'

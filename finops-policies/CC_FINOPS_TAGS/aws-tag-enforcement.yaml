@@ -50,4 +50,4 @@ definition:
     resource_types: "taggable"
     attribute: "tags.source-repo"
     operator: "exists"
-    # value: "https://github.com/UKHomeOffice/core-cloud-dynatrace-sandbox-terragrunt"
+    # value: "https://github.com/Home-Office-Digital/core-cloud-dynatrace-sandbox-terragrunt"
