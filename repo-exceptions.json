@@ -1,0 +1,11 @@
+{
+  "_comment": "Centrally-managed per-repo Checkov exceptions. All entries require SWG approval and a documented justification per check. skip_check excludes a check entirely. soft_fail_on lets a check run and appear in output, but only fails the build if Checkov's mapped severity for it is HIGH or CRITICAL - otherwise it soft-fails.",
+  "exceptions": {
+    "Home-Office-Digital/core-cloud-innovation-sandbox-config": {
+      "skip_check": [
+        { "id": "CKV_AWS_79", "justification": "TODO: Link to SWG Confluence page" }
+      ],
+      "soft_fail_on": []
+    }
+  }
+}

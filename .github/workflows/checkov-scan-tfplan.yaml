@@ -30,9 +30,19 @@ on:
         type: string
         required: false
         default: 'UKHomeOffice'
+      download_external_modules:
+        description: 'Download external Terraform modules during scan'
+        type: boolean
+        required: false
+        default: false
       TF_VAR_source-repo:
-        required: true
+        required: false
         type: string
+      terragrunt_parallelism:
+        description: 'Max number of concurrent Terragrunt modules'
+        required: false
+        type: string
+        default: '4'
     secrets:
       account_id:
         required: false
@@ -62,6 +72,39 @@ jobs:
         run: |
           mkdir -p central-checkov-policies
           mv checkout-central-checkov-policies/central-checkov-policies central-checkov-policies
+          mv checkout-central-checkov-policies/finops-policies finops-policies
+
+      - name: Resolve repo-scoped Checkov exceptions
+        id: resolve_exceptions
+        run: |
+          REPO="${{ github.repository }}"
+          GLOBAL_SKIP="CKV_CCL_CUSTOM_001,CKV_CCL_CUSTOM_002,CKV_AWS_28,CKV_TF_1"
+          EXCEPTIONS_FILE="checkout-central-checkov-policies/repo-exceptions.json"
+
+          REPO_SKIP=""
+          REPO_SOFT_FAIL_ON=""
+
+          if [ -f "$EXCEPTIONS_FILE" ]; then
+            REPO_SKIP=$(jq -r --arg repo "$REPO" \
+              '.exceptions[$repo].skip_check // [] | map(.id) | join(",")' \
+              "$EXCEPTIONS_FILE")
+            REPO_SOFT_FAIL_ON=$(jq -r --arg repo "$REPO" \
+              '.exceptions[$repo].soft_fail_on // [] | map(.id) | join(",")' \
+              "$EXCEPTIONS_FILE")
+          fi
+
+          COMBINED_SKIP="$GLOBAL_SKIP"
+          [ -n "$REPO_SKIP" ] && COMBINED_SKIP="${COMBINED_SKIP},${REPO_SKIP}"
+
+          echo "skip_check=${COMBINED_SKIP}" >> "$GITHUB_OUTPUT"
+          echo "soft_fail_on=${REPO_SOFT_FAIL_ON}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout Checkov Map File
+        uses: actions/checkout@v4
+        with:
+          repository: '${{ inputs.org }}/core-cloud-workflow-checkov-sast-scan'
+          ref: 'checkov-mapping-updates'
+          path: 'checkout-checkov-mapping-updates'
 
       - name: Checkout Checkov Map File
         uses: actions/checkout@v4
@@ -98,7 +141,7 @@ jobs:
           tf_version: 1.9.3
           tg_version: 0.59.6
           tg_dir: ./${{ inputs.path }}
-          tg_command: 'run-all plan --terragrunt-out-dir /github/workspace/outputs/${{ inputs.path }} --terragrunt-json-out-dir /github/workspace/outputs/${{ inputs.path }}'
+          tg_command: 'run-all plan --terragrunt-parallelism ${{ inputs.terragrunt_parallelism }} --terragrunt-out-dir /github/workspace/outputs/${{ inputs.path }} --terragrunt-json-out-dir /github/workspace/outputs/${{ inputs.path }}'
         timeout-minutes: 20
         env:
           TF_VAR_source-repo: ${{ inputs.TF_VAR_source-repo }}
@@ -112,17 +155,26 @@ jobs:
         with:
           output_format: cli,sarif
           quiet: true
-          # Enabling soft_fail temporarily for easier adoption. Once repos are compliant, remove this and use skip_check or soft_fail_on containing the global suppression list agreed by the SWG.
           soft_fail: true
-          # Use skip_check if we don't want the check to appear in the console.
-          # Use soft_fail_on when we want to make the suppressed check known e.g. for future mitigation.
-          # skip_check: CKV_AWS_EXAMPLE1,CKV_AWS_EXAMPLE2
-          # soft_fail_on: CKV_AWS_EXAMPLE1,CKV_AWS_EXAMPLE2
           directory: ${{ github.workspace }}/outputs/${{ inputs.path }}
           output_file_path: results-plan.sarif
           external_checks_dirs: central-checkov-policies
-          skip_check: CKV_CCL_CUSTOM_001,CKV_CCL_CUSTOM_002
+          skip_check: ${{ steps.resolve_exceptions.outputs.skip_check }}
           download_external_modules: true
+
+      - name: Run Checkov Scan (FinOps policies only)
+        if: ${{ inputs.plan_role != '' }}
+        id: checkov_scan_finops
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          output_format: cli
+          quiet: true
+          soft_fail: true
+          directory: ${{ github.workspace }}/outputs/${{ inputs.path }}
+          framework: terraform_plan
+          external_checks_dirs: finops-policies
+          download_external_modules: true
+          check: CC_FINOPS_TAGS
 
       - name: Run Checkov Scan
         id: checkov_scan
@@ -130,16 +182,69 @@ jobs:
         with:
           output_format: cli,sarif
           quiet: true
-          # Enabling soft_fail temporarily for easier adoption. Once repos are compliant, remove this and use skip_check or soft_fail_on containing the global suppression list agreed by the SWG.
           soft_fail: true
-          # Use skip_check if we don't want the check to appear in the console.
-          # Use soft_fail_on when we want to make the suppressed check known e.g. for future mitigation.
-          # skip_check: CKV_AWS_EXAMPLE1,CKV_AWS_EXAMPLE2
-          # soft_fail_on: CKV_AWS_EXAMPLE1,CKV_AWS_EXAMPLE2
           directory: '.'
           output_file_path: results-root.sarif
           external_checks_dirs: central-checkov-policies
-          skip_check: CKV_CCL_CUSTOM_001,CKV_CCL_CUSTOM_002
+          skip_check: ${{ steps.resolve_exceptions.outputs.skip_check }}
+          download_external_modules: ${{ inputs.download_external_modules }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+
+      - name: Fix File Permissions (Repository Root)
+        run: sudo chown -R $USER:$USER results-root.sarif
+
+      - name: Fix File Permissions (Plan files)
+        if: ${{ inputs.plan_role != '' }}
+        run: sudo chown -R $USER:$USER results-plan.sarif
+
+      - name: Process SARIF file (Repository Root)
+        run: python3 -u checkout-checkov-mapping-updates/scripts/update_via_map_file.py
+        env:
+          SARIF_DIRS: "results-root.sarif"
+
+      - name: Process SARIF file (Plan files)
+        if: ${{ inputs.plan_role != '' }}
+        run: python3 -u checkout-checkov-mapping-updates/scripts/update_via_map_file.py
+        env:
+          SARIF_DIRS: "results-plan.sarif"
+
+      - name: Enforce severity-gated exemptions (Repository Root)
+        run: python3 -u checkout-checkov-mapping-updates/scripts/enforce_severity_gate.py
+        env:
+          SARIF_DIRS: "results-root.sarif"
+          SOFT_FAIL_ON: ${{ steps.resolve_exceptions.outputs.soft_fail_on }}
+
+      - name: Enforce severity-gated exemptions (Plan files)
+        if: ${{ inputs.plan_role != '' }}
+        run: python3 -u checkout-checkov-mapping-updates/scripts/enforce_severity_gate.py
+        env:
+          SARIF_DIRS: "results-plan.sarif"
+          SOFT_FAIL_ON: ${{ steps.resolve_exceptions.outputs.soft_fail_on }}
+
+      - name: Determine commit SHA for SARIF upload
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          SHA=$(git cat-file -p HEAD | grep '^parent' | sed -n '2p' | awk '{print $2}')
+          if [ -n "$SHA" ]; then
+            PR_NUMBER=$(echo "$GITHUB_REF" | sed 's|refs/pull/\([0-9]*\)/merge|\1|')
+            git fetch --depth=1 origin "refs/pull/${PR_NUMBER}/head" 2>/dev/null || true
+            git checkout "$SHA" 2>/dev/null || true
+          fi
+          [ -z "$SHA" ] && SHA=$(git rev-parse HEAD)
+          printf 'SARIF_COMMIT_SHA=%s\n' "$SHA" >> "$GITHUB_ENV"
+
+      - name: Upload SARIF file (Plan Files)
+        if: ${{ inputs.plan_role != '' && (success() || failure()) }}
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: 'results-plan.sarif'
+          category: 'checkov-plan-scan'
+          ref: ${{ github.event_name == 'pull_request' && format('refs/pull/{0}/head', github.event.number) || github.ref }}
+          sha: ${{ env.SARIF_COMMIT_SHA || github.sha }}
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -163,7 +268,9 @@ jobs:
 
       - name: Upload SARIF file (Repository Root)
         if: ${{ success() || failure() }}
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: 'results-root.sarif'
-          category: 'checkov-repo-scan' 
+          category: 'checkov-repo-scan'
+          ref: ${{ github.event_name == 'pull_request' && format('refs/pull/{0}/head', github.event.number) || github.ref }}
+          sha: ${{ env.SARIF_COMMIT_SHA || github.sha }}

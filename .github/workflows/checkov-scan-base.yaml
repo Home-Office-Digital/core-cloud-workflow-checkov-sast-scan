@@ -27,6 +27,11 @@ on:
         type: string
         required: false
         default: 'UKHomeOffice'
+      download_external_modules:
+        description: 'Download external Terraform modules during scan'
+        type: boolean
+        required: false
+        default: false
     secrets:
       account_id:
         required: false
@@ -57,6 +62,31 @@ jobs:
           mkdir -p central-checkov-policies
           mv checkout-central-checkov-policies/central-checkov-policies central-checkov-policies
 
+      - name: Resolve repo-scoped Checkov exceptions
+        id: resolve_exceptions
+        run: |
+          REPO="${{ github.repository }}"
+          GLOBAL_SKIP="CKV_CCL_CUSTOM_001,CKV_CCL_CUSTOM_002,CKV_AWS_28,CKV_TF_1"
+          EXCEPTIONS_FILE="checkout-central-checkov-policies/repo-exceptions.json"
+
+          REPO_SKIP=""
+          REPO_SOFT_FAIL_ON=""
+
+          if [ -f "$EXCEPTIONS_FILE" ]; then
+            REPO_SKIP=$(jq -r --arg repo "$REPO" \
+              '.exceptions[$repo].skip_check // [] | map(.id) | join(",")' \
+              "$EXCEPTIONS_FILE")
+            REPO_SOFT_FAIL_ON=$(jq -r --arg repo "$REPO" \
+              '.exceptions[$repo].soft_fail_on // [] | map(.id) | join(",")' \
+              "$EXCEPTIONS_FILE")
+          fi
+
+          COMBINED_SKIP="$GLOBAL_SKIP"
+          [ -n "$REPO_SKIP" ] && COMBINED_SKIP="${COMBINED_SKIP},${REPO_SKIP}"
+
+          echo "skip_check=${COMBINED_SKIP}" >> "$GITHUB_OUTPUT"
+          echo "soft_fail_on=${REPO_SOFT_FAIL_ON}" >> "$GITHUB_OUTPUT"
+
       - name: Checkout Checkov Map File
         uses: actions/checkout@v4
         with:
@@ -70,16 +100,41 @@ jobs:
         with:
           output_format: cli,sarif
           quiet: true
-          # Enabling soft_fail temporarily for easier adoption. Once repos are compliant, remove this and use skip_check or soft_fail_on containing the global suppression list agreed by the SWG.
           soft_fail: true
-          # Use skip_check if we don't want the check to appear in the console.
-          # Use soft_fail_on when we want to make the suppressed check known e.g. for future mitigation.
-          # skip_check: CKV_AWS_EXAMPLE1,CKV_AWS_EXAMPLE2
-          # soft_fail_on: CKV_AWS_EXAMPLE1,CKV_AWS_EXAMPLE2
           directory: '.'
           output_file_path: results.sarif
           external_checks_dirs: central-checkov-policies
-          skip_check: CKV_CCL_CUSTOM_001,CKV_CCL_CUSTOM_002
+          skip_check: ${{ steps.resolve_exceptions.outputs.skip_check }}
+          download_external_modules: ${{ inputs.download_external_modules }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+
+      - name: Fix File Permissions
+        run: sudo chown -R $USER:$USER results.sarif
+      
+      - name: Process SARIF file
+        run: python3 -u checkout-checkov-mapping-updates/scripts/update_via_map_file.py
+
+      - name: Enforce severity-gated exemptions
+        run: python3 -u checkout-checkov-mapping-updates/scripts/enforce_severity_gate.py
+        env:
+          SARIF_DIRS: "results.sarif"
+          SOFT_FAIL_ON: ${{ steps.resolve_exceptions.outputs.soft_fail_on }}
+
+      - name: Determine commit SHA for SARIF upload
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          SHA=$(git cat-file -p HEAD | grep '^parent' | sed -n '2p' | awk '{print $2}')
+          if [ -n "$SHA" ]; then
+            PR_NUMBER=$(echo "$GITHUB_REF" | sed 's|refs/pull/\([0-9]*\)/merge|\1|')
+            git fetch --depth=1 origin "refs/pull/${PR_NUMBER}/head" 2>/dev/null || true
+            git checkout "$SHA" 2>/dev/null || true
+          fi
+          [ -z "$SHA" ] && SHA=$(git rev-parse HEAD)
+          printf 'SARIF_COMMIT_SHA=%s\n' "$SHA" >> "$GITHUB_ENV"
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -94,7 +149,9 @@ jobs:
 
       - name: Upload SARIF file (Source Code)
         if: ${{ success() || failure() }}
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: 'results.sarif'
-          category: 'checkov-scan' 
+          category: 'checkov-scan'
+          ref: ${{ github.event_name == 'pull_request' && format('refs/pull/{0}/head', github.event.number) || github.ref }}
+          sha: ${{ env.SARIF_COMMIT_SHA || github.sha }}
