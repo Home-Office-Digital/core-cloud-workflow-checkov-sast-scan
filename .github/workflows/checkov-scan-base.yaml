@@ -136,6 +136,17 @@ jobs:
           [ -z "$SHA" ] && SHA=$(git rev-parse HEAD)
           printf 'SARIF_COMMIT_SHA=%s\n' "$SHA" >> "$GITHUB_ENV"
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+
+      - name: Fix File Permissions
+        run: sudo chown -R $USER:$USER results.sarif
+      
+      - name: Process SARIF file
+        run: python3 -u checkout-checkov-mapping-updates/scripts/update_via_map_file.py
+
       - name: Upload SARIF file (Source Code)
         if: ${{ success() || failure() }}
         uses: github/codeql-action/upload-sarif@v4

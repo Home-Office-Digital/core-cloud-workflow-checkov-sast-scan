@@ -75,6 +75,13 @@ runs:
         ref: 'checkov-mapping-updates'
         path: 'checkout-checkov-mapping-updates'
 
+    - name: Checkout Checkov Map File
+      uses: actions/checkout@v4
+      with:
+        repository: '${{ inputs.org }}/core-cloud-workflow-checkov-sast-scan'
+        ref: 'checkov-mapping-updates'
+        path: 'checkout-checkov-mapping-updates'
+
     - name: Run Checkov Scan
       id: checkov_scan
       uses: bridgecrewio/checkov-action@v12

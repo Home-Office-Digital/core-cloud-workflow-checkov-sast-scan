@@ -106,6 +106,13 @@ jobs:
           ref: 'checkov-mapping-updates'
           path: 'checkout-checkov-mapping-updates'
 
+      - name: Checkout Checkov Map File
+        uses: actions/checkout@v4
+        with:
+          repository: '${{ inputs.org }}/core-cloud-workflow-checkov-sast-scan'
+          ref: 'checkov-mapping-updates'
+          path: 'checkout-checkov-mapping-updates'
+
       - uses: aws-actions/configure-aws-credentials@v4
         id: assume
         if: ${{ inputs.plan_role != '' }}
@@ -238,6 +245,26 @@ jobs:
           category: 'checkov-plan-scan'
           ref: ${{ github.event_name == 'pull_request' && format('refs/pull/{0}/head', github.event.number) || github.ref }}
           sha: ${{ env.SARIF_COMMIT_SHA || github.sha }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+
+      - name: Fix File Permissions
+        run: sudo chown -R $USER:$USER results-plan.sarif results-root.sarif
+
+      - name: Process SARIF file
+        run: python3 -u checkout-checkov-mapping-updates/scripts/update_via_map_file.py
+        env:
+          SARIF_DIRS: "results-plan.sarif,results-root.sarif"
+
+      - name: Upload SARIF file (Plan Files)
+        if: ${{ inputs.plan_role != '' && (success() || failure()) }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'results-plan.sarif'
+          category: 'checkov-plan-scan'
 
       - name: Upload SARIF file (Repository Root)
         if: ${{ success() || failure() }}
