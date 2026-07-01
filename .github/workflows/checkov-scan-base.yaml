@@ -62,17 +62,20 @@ jobs:
           mkdir -p central-checkov-policies
           mv checkout-central-checkov-policies/central-checkov-policies central-checkov-policies
 
-      - name: Resolve repo-scoped Checkov exceptions
+      - name: Checking for any repo-scoped Checkov exceptions
         id: resolve_exceptions
         run: |
           REPO="${{ github.repository }}"
-          GLOBAL_SKIP="CKV_CCL_CUSTOM_001,CKV_CCL_CUSTOM_002,CKV_AWS_28,CKV_TF_1"
           EXCEPTIONS_FILE="checkout-central-checkov-policies/repo-exceptions.json"
 
+          GLOBAL_SKIP=""
           REPO_SKIP=""
           REPO_SOFT_FAIL_ON=""
 
           if [ -f "$EXCEPTIONS_FILE" ]; then
+            GLOBAL_SKIP=$(jq -r \
+              '.global_skip_check // [] | map(.id) | join(",")' \
+              "$EXCEPTIONS_FILE")
             REPO_SKIP=$(jq -r --arg repo "$REPO" \
               '.exceptions[$repo].skip_check // [] | map(.id) | join(",")' \
               "$EXCEPTIONS_FILE")
@@ -82,7 +85,7 @@ jobs:
           fi
 
           COMBINED_SKIP="$GLOBAL_SKIP"
-          [ -n "$REPO_SKIP" ] && COMBINED_SKIP="${COMBINED_SKIP},${REPO_SKIP}"
+          [ -n "$REPO_SKIP" ] && COMBINED_SKIP="${COMBINED_SKIP:+${COMBINED_SKIP},}${REPO_SKIP}"
 
           echo "skip_check=${COMBINED_SKIP}" >> "$GITHUB_OUTPUT"
           echo "soft_fail_on=${REPO_SOFT_FAIL_ON}" >> "$GITHUB_OUTPUT"
@@ -118,7 +121,7 @@ jobs:
       - name: Process SARIF file
         run: python3 -u checkout-checkov-mapping-updates/scripts/update_via_map_file.py
 
-      - name: Enforce severity-gated exemptions
+      - name: Listing findings and severity levels
         run: python3 -u checkout-checkov-mapping-updates/scripts/enforce_severity_gate.py
         env:
           SARIF_DIRS: "results.sarif"

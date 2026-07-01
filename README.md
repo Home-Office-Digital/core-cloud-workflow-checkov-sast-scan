@@ -149,5 +149,5 @@ If you wish to just add a step to your existing workflow logic, you can use the 
               with:
                 path: '.'
 
-
-
+## Findings and severity levels
+No PRs can be merged if there are any findings with a severity level of HIGH or CRITICAL. If there are any findings with a severity level of MEDIUM or LOW, these will be reported in the PR but will not block the merge. A full list of the findings can be found in the Github Security Dashboard or the `Listing findings and severity levels` step in the calling workflow's build.`
