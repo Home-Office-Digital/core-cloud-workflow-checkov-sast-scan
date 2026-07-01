@@ -1,0 +1,10 @@
+# Enrichment file to add check IDs not (yet) present in checkov_map.csv by the script
+# e.g. CKV2_GHA_1 is not present in the Prisma docs, so not here. Adding manually
+CKV_GHA_1,MEDIUM
+CKV_GHA_2,MEDIUM
+CKV_GHA_3,LOW
+CKV_GHA_4,LOW
+CKV_GHA_5,LOW
+CKV_GHA_6,LOW
+CKV_GHA_7,LOW
+CKV2_GHA_1,MEDIUM
