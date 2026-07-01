@@ -1,6 +1,6 @@
 {
-  "_comment": "Centrally-managed per-repo Checkov exceptions. All entries require SWG approval and a documented justification per check. skip_check excludes a check entirely. Every other finding is severity-gated by default: it soft-fails (passes) unless Checkov's mapped severity is HIGH or CRITICAL. soft_fail_on is only needed as an override for a HIGH/CRITICAL finding you still want to soft-fail - it has no effect on LOW/MEDIUM/INFO findings, which always soft-fail regardless.",
-  "_global_skip_check_comment": "Checks skipped for every repo, org-wide - a different kind of decision to the per-repo exceptions below, so kept as its own top-level list. Still requires SWG approval and a documented justification per check.",
+  "_comment": "Centrally-managed per-repo Checkov exceptions. All entries require SWG approval With a Confluence link to the meeting minutes. Use skip_check to exclude the check entirely. Use soft_fail_on allows it through even if it's HIGH or CRITICAL but still shows in the output.",
+  "_global_skip_check_comment": "Checks skipped for every repo, org-wide. Still requires SWG approval and a documented justification per check.",
   "global_skip_check": [
     { "id": "CKV_CCL_CUSTOM_001", "justification": "TODO: Link to SWG Confluence page" },
     { "id": "CKV_CCL_CUSTOM_002", "justification": "TODO: Link to SWG Confluence page" },
