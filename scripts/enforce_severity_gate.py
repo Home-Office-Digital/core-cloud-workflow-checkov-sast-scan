@@ -68,12 +68,18 @@ def evaluate_dir(dir_name, severity_map, soft_fail_on):
             severity = severity_map.get(rule_id)
             location = _describe_location(result)
 
-            if rule_id in soft_fail_on and severity is not None and severity not in BLOCKING_SEVERITIES:
-                print(f"Allowed (soft_fail_on, severity={severity}): {rule_id} at {location}")
+            if severity is None:
+                print(f"Blocking (severity unknown - not in map file): {rule_id} at {location}")
+                blocking.append((rule_id, severity, location))
                 continue
 
-            if rule_id in soft_fail_on and severity is None:
-                print(f"Blocking (soft_fail_on, severity unknown - not in map file): {rule_id} at {location}")
+            if severity not in BLOCKING_SEVERITIES:
+                print(f"Allowed (severity={severity}, below HIGH/CRITICAL threshold): {rule_id} at {location}")
+                continue
+
+            if rule_id in soft_fail_on:
+                print(f"Allowed (soft_fail_on override, severity={severity}): {rule_id} at {location}")
+                continue
 
             blocking.append((rule_id, severity, location))
 
@@ -92,7 +98,7 @@ def main():
     target_dirs = [d.strip() for d in dirs_env.split(",") if d.strip()]
 
     print(f"Evaluating {len(target_dirs)} directories against severity gate: {target_dirs}")
-    print(f"Repo-scoped exemptions eligible for severity gating: {sorted(soft_fail_on) or 'none'}")
+    print(f"Repo-scoped soft_fail_on overrides (for HIGH/CRITICAL findings only): {sorted(soft_fail_on) or 'none'}")
 
     all_blocking = []
     for dir_name in target_dirs:
