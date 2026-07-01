@@ -1,0 +1,18 @@
+{
+  "_comment": "Centrally-managed per-repo Checkov exceptions. All entries require SWG approval With a Confluence link to the meeting minutes. Use skip_check to exclude the check entirely. Use soft_fail_on allows it through even if it's HIGH or CRITICAL but still shows in the output.",
+  "_global_skip_check_comment": "Checks skipped for every repo, org-wide. Still requires SWG approval and a documented justification per check.",
+  "global_skip_check": [
+    { "id": "CKV_CCL_CUSTOM_001", "justification": "TODO: Link to SWG Confluence page" },
+    { "id": "CKV_CCL_CUSTOM_002", "justification": "TODO: Link to SWG Confluence page" },
+    { "id": "CKV_AWS_28", "justification": "TODO: Link to SWG Confluence page" },
+    { "id": "CKV_TF_1", "justification": "TODO: Link to SWG Confluence page" }
+  ],
+  "exceptions": {
+    "Home-Office-Digital/core-cloud-innovation-sandbox-config": {
+      "skip_check": [
+        { "id": "CKV_AWS_79", "justification": "TODO: Link to SWG Confluence page" }
+      ],
+      "soft_fail_on": []
+    }
+  }
+}

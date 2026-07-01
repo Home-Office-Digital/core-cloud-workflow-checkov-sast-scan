@@ -16,7 +16,7 @@ inputs:
     description: 'Set if using GHES instance'
     type: string
     required: false
-    default: 'UKHomeOffice'
+    default: 'Home-Office-Digital'
 
 runs:
   using: 'composite'
@@ -42,6 +42,35 @@ runs:
         mv checkout-central-checkov-policies/central-checkov-policies central-checkov-policies
         mv checkout-central-checkov-policies/finops-policies finops-policies
 
+    - name: Checking for any repo-scoped Checkov exceptions
+      id: resolve_exceptions
+      shell: bash
+      run: |
+        REPO="${{ github.repository }}"
+        EXCEPTIONS_FILE="checkout-central-checkov-policies/repo-exceptions.json"
+
+        GLOBAL_SKIP=""
+        REPO_SKIP=""
+        REPO_SOFT_FAIL_ON=""
+
+        if [ -f "$EXCEPTIONS_FILE" ]; then
+          GLOBAL_SKIP=$(jq -r \
+            '.global_skip_check // [] | map(.id) | join(",")' \
+            "$EXCEPTIONS_FILE")
+          REPO_SKIP=$(jq -r --arg repo "$REPO" \
+            '.exceptions[$repo].skip_check // [] | map(.id) | join(",")' \
+            "$EXCEPTIONS_FILE")
+          REPO_SOFT_FAIL_ON=$(jq -r --arg repo "$REPO" \
+            '.exceptions[$repo].soft_fail_on // [] | map(.id) | join(",")' \
+            "$EXCEPTIONS_FILE")
+        fi
+
+        COMBINED_SKIP="$GLOBAL_SKIP"
+        [ -n "$REPO_SKIP" ] && COMBINED_SKIP="${COMBINED_SKIP:+${COMBINED_SKIP},}${REPO_SKIP}"
+
+        echo "skip_check=${COMBINED_SKIP}" >> "$GITHUB_OUTPUT"
+        echo "soft_fail_on=${REPO_SOFT_FAIL_ON}" >> "$GITHUB_OUTPUT"
+
     - name: Checkout Checkov Map File
       uses: actions/checkout@v4
       with:
@@ -55,10 +84,11 @@ runs:
       with:
         output_format: cli,sarif
         quiet: true
+        soft_fail: true
         directory: ${{ inputs.path }}
         output_file_path: results.sarif
         external_checks_dirs: central-checkov-policies
-        skip_check: CKV_CCL_CUSTOM_001,CKV_CCL_CUSTOM_002,CKV_AWS_28,CKV_TF_1
+        skip_check: ${{ steps.resolve_exceptions.outputs.skip_check }}
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -72,6 +102,13 @@ runs:
     - name: Process SARIF file
       shell: bash
       run: python3 -u checkout-checkov-mapping-updates/scripts/update_via_map_file.py
+
+    - name: Listing findings and severity levels
+      shell: bash
+      run: python3 -u checkout-checkov-mapping-updates/scripts/enforce_severity_gate.py
+      env:
+        SARIF_DIRS: "results.sarif"
+        SOFT_FAIL_ON: ${{ steps.resolve_exceptions.outputs.soft_fail_on }}
 
     - name: Determine commit SHA for SARIF upload
       if: ${{ github.event_name == 'pull_request' }}
@@ -87,6 +124,7 @@ runs:
         printf 'SARIF_COMMIT_SHA=%s\n' "$SHA" >> "$GITHUB_ENV"
 
     - name: Upload SARIF file
+      if: ${{ success() || failure() }}
       uses: github/codeql-action/upload-sarif@v4
       with:
         sarif_file: 'results.sarif'

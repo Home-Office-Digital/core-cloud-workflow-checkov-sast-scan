@@ -26,7 +26,7 @@ on:
         description: 'Set if using GHES instance'
         type: string
         required: false
-        default: 'UKHomeOffice'
+        default: 'Home-Office-Digital'
       download_external_modules:
         description: 'Download external Terraform modules during scan'
         type: boolean
@@ -62,6 +62,34 @@ jobs:
           mkdir -p central-checkov-policies
           mv checkout-central-checkov-policies/central-checkov-policies central-checkov-policies
 
+      - name: Checking for any repo-scoped Checkov exceptions
+        id: resolve_exceptions
+        run: |
+          REPO="${{ github.repository }}"
+          EXCEPTIONS_FILE="checkout-central-checkov-policies/repo-exceptions.json"
+
+          GLOBAL_SKIP=""
+          REPO_SKIP=""
+          REPO_SOFT_FAIL_ON=""
+
+          if [ -f "$EXCEPTIONS_FILE" ]; then
+            GLOBAL_SKIP=$(jq -r \
+              '.global_skip_check // [] | map(.id) | join(",")' \
+              "$EXCEPTIONS_FILE")
+            REPO_SKIP=$(jq -r --arg repo "$REPO" \
+              '.exceptions[$repo].skip_check // [] | map(.id) | join(",")' \
+              "$EXCEPTIONS_FILE")
+            REPO_SOFT_FAIL_ON=$(jq -r --arg repo "$REPO" \
+              '.exceptions[$repo].soft_fail_on // [] | map(.id) | join(",")' \
+              "$EXCEPTIONS_FILE")
+          fi
+
+          COMBINED_SKIP="$GLOBAL_SKIP"
+          [ -n "$REPO_SKIP" ] && COMBINED_SKIP="${COMBINED_SKIP:+${COMBINED_SKIP},}${REPO_SKIP}"
+
+          echo "skip_check=${COMBINED_SKIP}" >> "$GITHUB_OUTPUT"
+          echo "soft_fail_on=${REPO_SOFT_FAIL_ON}" >> "$GITHUB_OUTPUT"
+
       - name: Checkout Checkov Map File
         uses: actions/checkout@v4
         with:
@@ -75,14 +103,11 @@ jobs:
         with:
           output_format: cli,sarif
           quiet: true
-          # Use skip_check if we don't want the check to appear in the console.
-          # Use soft_fail_on when we want to make the suppressed check known e.g. for future mitigation.
-          # skip_check: CKV_AWS_EXAMPLE1,CKV_AWS_EXAMPLE2
-          # soft_fail_on: CKV_AWS_EXAMPLE1,CKV_AWS_EXAMPLE2
+          soft_fail: true
           directory: '.'
           output_file_path: results.sarif
           external_checks_dirs: central-checkov-policies
-          skip_check: CKV_CCL_CUSTOM_001,CKV_CCL_CUSTOM_002,CKV_AWS_28,CKV_TF_1
+          skip_check: ${{ steps.resolve_exceptions.outputs.skip_check }}
           download_external_modules: ${{ inputs.download_external_modules }}
 
       - name: Set up Python
@@ -95,6 +120,12 @@ jobs:
       
       - name: Process SARIF file
         run: python3 -u checkout-checkov-mapping-updates/scripts/update_via_map_file.py
+
+      - name: Listing findings and severity levels
+        run: python3 -u checkout-checkov-mapping-updates/scripts/enforce_severity_gate.py
+        env:
+          SARIF_DIRS: "results.sarif"
+          SOFT_FAIL_ON: ${{ steps.resolve_exceptions.outputs.soft_fail_on }}
 
       - name: Determine commit SHA for SARIF upload
         if: ${{ github.event_name == 'pull_request' }}
