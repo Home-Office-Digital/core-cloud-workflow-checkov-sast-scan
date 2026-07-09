@@ -45,7 +45,7 @@ permissions:
 
 jobs:
   checkov-scan-tfplan-only:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner }}
     environment: ${{ inputs.env_name }}
     steps:
       - name: Checkout Code
