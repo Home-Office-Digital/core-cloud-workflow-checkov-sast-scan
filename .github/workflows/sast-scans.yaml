@@ -2,6 +2,12 @@ name: Checkov and Sonarqube Scans
  
 on:
   workflow_call:
+    inputs:
+      runner:
+        description: 'For use with a specific runner'
+        type: string
+        required: false
+        default: 'ubuntu-latest'
     secrets:
       sonar_token:
         required: true
@@ -23,9 +29,11 @@ permissions:
 jobs:
   checkov-scan:
     uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/.github/workflows/checkov-scan-base.yaml@1.7.0
+    with:
+      runner: ${{ inputs.runner || 'ubuntu-latest' }}
 
   sonarqube-scanner:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner || 'ubuntu-latest' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
