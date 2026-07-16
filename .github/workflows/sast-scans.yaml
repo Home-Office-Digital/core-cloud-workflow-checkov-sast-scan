@@ -13,6 +13,12 @@ on:
         required: true
       sonar_host_url:
         required: true
+      EXEMPTIONS_APP_ID:
+        description: Exemptions secret applied by the Core Cloud team when exceptions are approved and required.
+        required: false
+      EXEMPTIONS_APP_PRIVATE_KEY:
+        description: Exemptions secret applied by the Core Cloud team when exceptions are approved and required.
+        required: false
   push:
     branches:
       - main
@@ -28,20 +34,23 @@ permissions:
 
 jobs:
   checkov-scan:
-    uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/.github/workflows/checkov-scan-base.yaml@1.7.0
+    uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/.github/workflows/checkov-scan-base.yaml@831674c2c6dbb407450e44d5efb69c9dde9082f9 # 1.7.0
     with:
       runner: ${{ inputs.runner || 'ubuntu-latest' }}
+    secrets:
+      EXEMPTIONS_APP_ID: ${{ secrets.EXEMPTIONS_APP_ID }}
+      EXEMPTIONS_APP_PRIVATE_KEY: ${{ secrets.EXEMPTIONS_APP_PRIVATE_KEY }}
 
   sonarqube-scanner:
     runs-on: ${{ inputs.runner || 'ubuntu-latest' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.10'
 
@@ -52,7 +61,7 @@ jobs:
           python -m pytest tests/ --cov=scripts --cov-report=xml
 
       - name: Sonarqube Composite Action
-        uses: Home-Office-Digital/core-cloud-workflow-sonarqube-scan@1.1.7
+        uses: Home-Office-Digital/core-cloud-workflow-sonarqube-scan@edf89ed883dbba9e7b2610aedf3a217c1896692f # 1.1.7
         with:
           sonar_token: ${{ secrets.sonar_token }}
           sonar_host_url: ${{ secrets.sonar_host_url }}

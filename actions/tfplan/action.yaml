@@ -38,15 +38,25 @@ inputs:
     description: 'Max number of concurrent Terragrunt modules'
     required: false
     default: '4'
+  app_id:
+    description: Exemptions secret applied by the Core Cloud team when exceptions are approved and required.
+    required: false
+    type: string
+    default: ""
+  app_private_key:
+    description: Exemptions secret applied by the Core Cloud team when exceptions are approved and required.
+    required: false
+    type: string
+    default: ""
 
 runs:
   using: 'composite'
   steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
     - name: Checkout reusable workflow for custom policies
-      uses: actions/checkout@v4
+      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       with:
         repository: '${{ inputs.org }}/core-cloud-workflow-checkov-sast-scan'
         ref: ${{ inputs.version-tag }}
@@ -58,21 +68,83 @@ runs:
         mkdir -p central-checkov-policies
         mv checkout-central-checkov-policies/central-checkov-policies central-checkov-policies
 
+    - name: Mint exemptions repo token
+      id: mint_token
+      if: inputs.app_id != '' && inputs.app_private_key != ''
+      uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+      with:
+        client-id: ${{ inputs.app_id }}
+        private-key: ${{ inputs.app_private_key }}
+        owner: Home-Office-Digital
+        repositories: core-cloud-cve-exemptions
+
     - name: Checking for any repo-scoped Checkov exceptions
       id: resolve_exceptions
       shell: bash
+      env:
+        EXEMPTIONS_TOKEN: ${{ steps.mint_token.outputs.token }}
       run: |
+        set -e
+
         REPO="${{ github.repository }}"
-        EXCEPTIONS_FILE="checkout-central-checkov-policies/repo-exceptions.json"
+        EXCEPTIONS_FILE=""
+        GLOBAL_SKIP_FILE=""
+
+        if [ -n "$EXEMPTIONS_TOKEN" ]; then
+          EXCEPTIONS_FILE="$(mktemp "$RUNNER_TEMP/repo-exceptions-XXXXXX.json")"
+          status="$(curl -s -o "$EXCEPTIONS_FILE" -w '%{http_code}' \
+            -H "Authorization: Bearer $EXEMPTIONS_TOKEN" \
+            -H "Accept: application/vnd.github.raw+json" \
+            "https://api.github.com/repos/Home-Office-Digital/core-cloud-cve-exemptions/contents/exemptions/checkov/repo-exceptions.json")"
+
+          if [ "$status" = "200" ]; then
+            echo "Applying centrally managed Checkov exceptions"
+          elif [ "$status" = "404" ]; then
+            echo "No centrally managed Checkov exceptions found"
+            EXCEPTIONS_FILE=""
+          else
+            echo "::error::Failed to fetch Checkov exceptions file (HTTP $status)"
+            exit 1
+          fi
+
+          GLOBAL_SKIP_FILE="$(mktemp "$RUNNER_TEMP/global-skip-check-XXXXXX.json")"
+          status="$(curl -s -o "$GLOBAL_SKIP_FILE" -w '%{http_code}' \
+            -H "Authorization: Bearer $EXEMPTIONS_TOKEN" \
+            -H "Accept: application/vnd.github.raw+json" \
+            "https://api.github.com/repos/Home-Office-Digital/core-cloud-cve-exemptions/contents/exemptions/checkov/global-skip-check.json")"
+
+          if [ "$status" = "200" ]; then
+            echo "Applying org-wide Checkov global skip list"
+          elif [ "$status" = "404" ]; then
+            echo "No org-wide Checkov global skip list found"
+            GLOBAL_SKIP_FILE=""
+          else
+            echo "::error::Failed to fetch global skip check file (HTTP $status)"
+            exit 1
+          fi
+        else
+          echo "No exemptions app credentials configured for this repo - no Checkov exceptions or global skips applied"
+        fi
 
         GLOBAL_SKIP=""
         REPO_SKIP=""
         REPO_SOFT_FAIL_ON=""
 
-        if [ -f "$EXCEPTIONS_FILE" ]; then
+        if [ -n "$GLOBAL_SKIP_FILE" ] && [ -f "$GLOBAL_SKIP_FILE" ]; then
+          while IFS= read -r id; do
+            [ -n "$id" ] && echo "::add-mask::$id"
+          done < <(jq -r '.global_skip_check // [] | map(.id) | .[]' "$GLOBAL_SKIP_FILE")
+
           GLOBAL_SKIP=$(jq -r \
             '.global_skip_check // [] | map(.id) | join(",")' \
-            "$EXCEPTIONS_FILE")
+            "$GLOBAL_SKIP_FILE")
+        fi
+
+        if [ -n "$EXCEPTIONS_FILE" ] && [ -f "$EXCEPTIONS_FILE" ]; then
+          while IFS= read -r id; do
+            [ -n "$id" ] && echo "::add-mask::$id"
+          done < <(jq -r --arg repo "$REPO" '.exceptions[$repo].skip_check // [] | map(.id) | .[]' "$EXCEPTIONS_FILE")
+
           REPO_SKIP=$(jq -r --arg repo "$REPO" \
             '.exceptions[$repo].skip_check // [] | map(.id) | join(",")' \
             "$EXCEPTIONS_FILE")
@@ -88,13 +160,13 @@ runs:
         echo "soft_fail_on=${REPO_SOFT_FAIL_ON}" >> "$GITHUB_OUTPUT"
 
     - name: Checkout Checkov Map File
-      uses: actions/checkout@v4
+      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       with:
         repository: '${{ inputs.org }}/core-cloud-workflow-checkov-sast-scan'
         ref: 'checkov-mapping-updates'
         path: 'checkout-checkov-mapping-updates'
 
-    - uses: aws-actions/configure-aws-credentials@v4
+    - uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c # v4
       id: assume
       if: ${{ inputs.plan_role != '' }}
       name: Configure AWS IdP Credentials
@@ -107,7 +179,7 @@ runs:
     - name: Setup Terraform
       if: ${{ inputs.plan_role != '' }}
       id: terraform_setup
-      uses: hashicorp/setup-terraform@v3
+      uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
 
     - name: Create output folder
       shell: bash
@@ -120,7 +192,7 @@ runs:
     - name: Terragrunt Plan
       if: ${{ inputs.plan_role != '' }}
       id: terraform_plan
-      uses: gruntwork-io/terragrunt-action@v2
+      uses: gruntwork-io/terragrunt-action@9559e51d05873b0ea467c42bbabcb5c067642ccc # v2
       with:
         tf_version: 1.9.3
         tg_version: 0.59.6
@@ -134,7 +206,7 @@ runs:
     - name: Run Checkov Scan (Plan Files)
       if: ${{ inputs.plan_role != '' }}
       id: checkov_scan_plan
-      uses: bridgecrewio/checkov-action@v12
+      uses: bridgecrewio/checkov-action@7b972723c44fb3d256283fac96fae5d7c1894bb7 # v12
       with:
         output_format: cli,sarif
         quiet: true
@@ -146,7 +218,7 @@ runs:
         download_external_modules: true
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # v4
       with:
         python-version: '3.8'
 
@@ -185,7 +257,7 @@ runs:
 
     - name: Upload SARIF file (Plan Files)
       if: ${{ inputs.plan_role != '' && (success() || failure()) }}
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@641a925cfafe92d0fdf8b239ba4053e3f8d99d6d # v3
       with:
         sarif_file: 'results-plan.sarif'
         category: 'checkov-plan-scan'
