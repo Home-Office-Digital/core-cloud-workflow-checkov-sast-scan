@@ -6,7 +6,7 @@ This repository contains reusable Github Actions workflow files.
 # Checkov
 
 ## Overview
-This is a reusable workflow for SAST scanning source code and artifacts. This is a mandatory requirement for all Core Cloud repositories. If you require implementation assistance or have any additional questions, please reach out to Team Sauron.
+This is a reusable workflow for SAST scanning source code and artifacts. This is a mandatory requirement for all Core Cloud repositories. If you require implementation assistance or have any additional questions, please reach out to the maintainer's team.
 
 There are 2 Checkov reusable workflow files that your workflow can use. NOTE: These are for informational purposes only.
 
@@ -128,7 +128,7 @@ Add the above config into the following directory in your repository `.github/wo
 
 ## Custom Policies
 
-Core Cloud centrally manages custom policies within this repo. These can be found at [central-checkov-policies](https://github.com/Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/central-checkov-policies) and are run against all repos. If you wish to add additional custom policies after developing and testing these locally, please raise a PR and contact Team Sauron who will carry out further testing before merging for general use. Checkov supports policies written in both YAML and Python.
+Core Cloud centrally manages custom policies within this repo. These can be found at [central-checkov-policies](https://github.com/Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/central-checkov-policies) and are run against all repos. If you wish to add additional custom policies after developing and testing these locally, please raise a PR and contact this maintainer's team who will carry out further testing before merging for general use. Checkov supports policies written in both YAML and Python.
 
 ## Composite Action
 
