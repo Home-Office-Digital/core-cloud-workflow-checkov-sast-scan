@@ -149,5 +149,23 @@ If you wish to just add a step to your existing workflow logic, you can use the 
               with:
                 path: '.'
 
+## HIGH/CRITICAL exemptions
+Exemptions for HIGH/CRITICAL Checkov findings can be applied by the Core Cloud team when approved and required. The following secrets are required in order to use exemptions and will be applied by the Core Cloud team:
+- `EXEMPTIONS_APP_ID`
+- `EXEMPTIONS_APP_PRIVATE_KEY`
+
+These are passed into the composite action as the `app_id` and `app_private_key` inputs:
+
+      jobs:
+        example-job:
+          runs-on: ubuntu-latest
+          steps:
+            - name: Run Checkov Scan on the source code and existing plan files
+              uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan@1.5.0
+              with:
+                path: '.'
+                app_id: ${{ secrets.EXEMPTIONS_APP_ID }}
+                app_private_key: ${{ secrets.EXEMPTIONS_APP_PRIVATE_KEY }}
+
 ## Findings and severity levels
 No PRs can be merged if there are any findings with a severity level of HIGH or CRITICAL. If there are any findings with a severity level of MEDIUM or LOW, these will be reported in the PR but will not block the merge. A full list of the findings can be found in the Github Security Dashboard or the `Listing findings and severity levels` step in the calling workflow's build.`
