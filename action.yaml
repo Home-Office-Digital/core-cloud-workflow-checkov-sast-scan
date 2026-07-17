@@ -35,17 +35,10 @@ runs:
       uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       with:
         repository: '${{ inputs.org }}/core-cloud-workflow-checkov-sast-scan'
-        ref: ${{ inputs.version-tag }}
+        # CHANGEBACK
+        ref: 'feature/org-secret-exemptions'
+        #ref: ${{ inputs.version-tag }}
         path: 'checkout-central-checkov-policies'
-
-      - name: Checkout reusable workflow for custom policies
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-        with:
-          repository: '${{ inputs.org }}/core-cloud-workflow-checkov-sast-scan'
-          # CHANGEBACK
-          ref: 'feature/org-secret-exemptions'
-          #ref: ${{ inputs.version-tag }}
-          path: 'checkout-central-checkov-policies'
 
     - name: Move policies
       shell: bash
