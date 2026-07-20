@@ -68,5 +68,5 @@ jobs:
           TF_VAR_source-repo: ${{ inputs.TF_VAR_source-repo }}
           account_id: ${{ secrets.account_id }}
           terragrunt_parallelism: ${{ inputs.terragrunt_parallelism }}
-          app_id: ${{ secrets.EXEMPTIONS_APP_ID }}
-          app_private_key: ${{ secrets.EXEMPTIONS_APP_PRIVATE_KEY }}
+          EXEMPTIONS_APP_ID: ${{ secrets.EXEMPTIONS_APP_ID }}
+          EXEMPTIONS_APP_PRIVATE_KEY: ${{ secrets.EXEMPTIONS_APP_PRIVATE_KEY }}
