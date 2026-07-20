@@ -59,7 +59,7 @@ jobs:
       
       - name: Run Checkov TFPlan Only Scan
         # Always bump this to the latest commit sha of the latest tag in a subsequent PR after your PR has been approved.
-        uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/actions/tfplan@a18eefa074e654b1916759d9aa34d1350d7f77ad
+        uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/actions/tfplan@5bc257b715cd182872f613adfba43f7faf3acbdf # 1.20.3
         timeout-minutes: 20
         with:
           plan_role: ${{ inputs.plan_role }}
