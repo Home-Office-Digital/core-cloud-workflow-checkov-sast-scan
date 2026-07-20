@@ -58,8 +58,8 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       
       - name: Run Checkov TFPlan Only Scan
-        # CHANGEME back to commit sha of newest tag when known
-        uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/actions/tfplan@feature/org-secret-exemptions
+        # Always bump this to the latest commit sha of the latest tag in a subsequent PR after your PR has been approved.
+        uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/actions/tfplan@a18eefa074e654b1916759d9aa34d1350d7f77ad
         timeout-minutes: 20
         with:
           plan_role: ${{ inputs.plan_role }}
