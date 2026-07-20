@@ -28,7 +28,7 @@ permissions:
 
 jobs:
   checkov-scan:
-    uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/.github/workflows/checkov-scan-base.yaml@831674c2c6dbb407450e44d5efb69c9dde9082f9 # 1.7.0
+    uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/.github/workflows/checkov-scan-base.yaml@c85f81ba89d5332970b268d5532b6ceff35dbcad # 1.12.1
     with:
       runner: ${{ inputs.runner || 'ubuntu-latest' }}
 
