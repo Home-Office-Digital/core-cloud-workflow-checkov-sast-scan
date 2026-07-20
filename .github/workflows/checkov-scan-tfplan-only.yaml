@@ -36,6 +36,12 @@ on:
     secrets:
       account_id:
         required: false
+      EXEMPTIONS_APP_ID:
+        description: Exemptions secret applied by the Core Cloud team when exceptions are approved and required.
+        required: false
+      EXEMPTIONS_APP_PRIVATE_KEY:
+        description: Exemptions secret applied by the Core Cloud team when exceptions are approved and required.
+        required: false
 
 permissions:
   contents: read
@@ -49,10 +55,11 @@ jobs:
     environment: ${{ inputs.env_name }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       
       - name: Run Checkov TFPlan Only Scan
-        uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/actions/tfplan@main
+        # CHANGEME back to commit sha of newest tag when known
+        uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/actions/tfplan@feature/org-secret-exemptions
         timeout-minutes: 20
         with:
           plan_role: ${{ inputs.plan_role }}
@@ -61,3 +68,5 @@ jobs:
           TF_VAR_source-repo: ${{ inputs.TF_VAR_source-repo }}
           account_id: ${{ secrets.account_id }}
           terragrunt_parallelism: ${{ inputs.terragrunt_parallelism }}
+          app_id: ${{ secrets.EXEMPTIONS_APP_ID }}
+          app_private_key: ${{ secrets.EXEMPTIONS_APP_PRIVATE_KEY }}

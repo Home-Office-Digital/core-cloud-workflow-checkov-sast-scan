@@ -6,7 +6,7 @@ This repository contains reusable Github Actions workflow files.
 # Checkov
 
 ## Overview
-This is a reusable workflow for SAST scanning source code and artifacts. This is a mandatory requirement for all Core Cloud repositories. If you require implementation assistance or have any additional questions, please reach out to Team Sauron.
+This is a reusable workflow for SAST scanning source code and artifacts. This is a mandatory requirement for all Core Cloud repositories. If you require implementation assistance or have any additional questions, please reach out to the maintainer's team.
 
 There are 2 Checkov reusable workflow files that your workflow can use. NOTE: These are for informational purposes only.
 
@@ -128,7 +128,7 @@ Add the above config into the following directory in your repository `.github/wo
 
 ## Custom Policies
 
-Core Cloud centrally manages custom policies within this repo. These can be found at [central-checkov-policies](https://github.com/Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/central-checkov-policies) and are run against all repos. If you wish to add additional custom policies after developing and testing these locally, please raise a PR and contact Team Sauron who will carry out further testing before merging for general use. Checkov supports policies written in both YAML and Python. Example policies are provided for both formats with IDs CKV_CCL_CUSTOM_001 and CKV_CCL_CUSTOM_002.
+Core Cloud centrally manages custom policies within this repo. These can be found at [central-checkov-policies](https://github.com/Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/central-checkov-policies) and are run against all repos. If you wish to add additional custom policies after developing and testing these locally, please raise a PR and contact this maintainer's team who will carry out further testing before merging for general use. Checkov supports policies written in both YAML and Python.
 
 ## Composite Action
 
@@ -148,6 +148,24 @@ If you wish to just add a step to your existing workflow logic, you can use the 
               uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan@1.5.0
               with:
                 path: '.'
+
+## HIGH/CRITICAL exemptions
+Exemptions for HIGH/CRITICAL Checkov findings can be applied by the Core Cloud team when approved and required. The following secrets are required in order to use exemptions and will be applied by the Core Cloud team:
+- `EXEMPTIONS_APP_ID`
+- `EXEMPTIONS_APP_PRIVATE_KEY`
+
+These are passed into the composite action as the `app_id` and `app_private_key` inputs:
+
+      jobs:
+        example-job:
+          runs-on: ubuntu-latest
+          steps:
+            - name: Run Checkov Scan on the source code and existing plan files
+              uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan@1.5.0
+              with:
+                path: '.'
+                app_id: ${{ secrets.EXEMPTIONS_APP_ID }}
+                app_private_key: ${{ secrets.EXEMPTIONS_APP_PRIVATE_KEY }}
 
 ## Findings and severity levels
 No PRs can be merged if there are any findings with a severity level of HIGH or CRITICAL. If there are any findings with a severity level of MEDIUM or LOW, these will be reported in the PR but will not block the merge. A full list of the findings can be found in the Github Security Dashboard or the `Listing findings and severity levels` step in the calling workflow's build.`
