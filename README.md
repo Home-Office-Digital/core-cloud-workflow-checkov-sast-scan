@@ -154,7 +154,18 @@ Exemptions for HIGH/CRITICAL Checkov findings can be applied by the Core Cloud t
 - `EXEMPTIONS_APP_ID`
 - `EXEMPTIONS_APP_PRIVATE_KEY`
 
-These are passed into the composite action as the `app_id` and `app_private_key` inputs:
+These are declared under the same names whether you're calling a reusable workflow or the composite action directly — only the block they go under changes: `secrets:` for a workflow, `with:` for an action.
+
+If you're calling one of the reusable workflows (`checkov-scan-base.yaml`, `checkov-scan-tfplan.yaml`, `checkov-scan-tfplan-only.yaml`):
+
+      jobs:
+        checkov-scan:
+          uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/.github/workflows/checkov-scan-base.yaml@1.5.0
+          secrets:
+            EXEMPTIONS_APP_ID: ${{ secrets.EXEMPTIONS_APP_ID }}
+            EXEMPTIONS_APP_PRIVATE_KEY: ${{ secrets.EXEMPTIONS_APP_PRIVATE_KEY }}
+
+If you're using the composite action directly:
 
       jobs:
         example-job:
@@ -164,8 +175,8 @@ These are passed into the composite action as the `app_id` and `app_private_key`
               uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan@1.5.0
               with:
                 path: '.'
-                app_id: ${{ secrets.EXEMPTIONS_APP_ID }}
-                app_private_key: ${{ secrets.EXEMPTIONS_APP_PRIVATE_KEY }}
+                EXEMPTIONS_APP_ID: ${{ secrets.EXEMPTIONS_APP_ID }}
+                EXEMPTIONS_APP_PRIVATE_KEY: ${{ secrets.EXEMPTIONS_APP_PRIVATE_KEY }}
 
 ## Findings and severity levels
 No PRs can be merged if there are any findings with a severity level of HIGH or CRITICAL. If there are any findings with a severity level of MEDIUM or LOW, these will be reported in the PR but will not block the merge. A full list of the findings can be found in the Github Security Dashboard or the `Listing findings and severity levels` step in the calling workflow's build.`

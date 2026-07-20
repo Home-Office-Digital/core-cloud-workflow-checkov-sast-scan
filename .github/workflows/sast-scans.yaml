@@ -13,6 +13,12 @@ on:
         required: true
       sonar_host_url:
         required: true
+      EXEMPTIONS_APP_ID:
+        description: Exemptions secret applied by the Core Cloud team when exceptions are approved and required.
+        required: false
+      EXEMPTIONS_APP_PRIVATE_KEY:
+        description: Exemptions secret applied by the Core Cloud team when exceptions are approved and required.
+        required: false
   push:
     branches:
       - main
@@ -31,6 +37,9 @@ jobs:
     uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/.github/workflows/checkov-scan-base.yaml@c85f81ba89d5332970b268d5532b6ceff35dbcad # 1.12.1
     with:
       runner: ${{ inputs.runner || 'ubuntu-latest' }}
+    secrets:
+      EXEMPTIONS_APP_ID: ${{ secrets.EXEMPTIONS_APP_ID }}
+      EXEMPTIONS_APP_PRIVATE_KEY: ${{ secrets.EXEMPTIONS_APP_PRIVATE_KEY }}
 
   sonarqube-scanner:
     runs-on: ${{ inputs.runner || 'ubuntu-latest' }}
