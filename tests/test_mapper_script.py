@@ -144,8 +144,9 @@ def test_main_no_severity_map(mock_load):
     
     # Does running main terminate early?
     main()
-    
-    mock_load.assert_called_once()
+
+    # load_combined_severity_map loads both the auto-generated and manual CSVs
+    assert mock_load.call_count == 2
 
 @patch("scripts.update_via_map_file.os.environ.get")
 @patch("scripts.update_via_map_file.load_severity_map")
