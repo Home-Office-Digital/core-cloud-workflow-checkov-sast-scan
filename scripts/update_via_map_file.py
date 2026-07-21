@@ -61,6 +61,16 @@ def _update_rule_severity(rule, severity_label):
     rule.setdefault("properties", {})["security-severity"] = new_score
     rule.setdefault("defaultConfiguration", {})["level"] = new_level
 
+def _update_result_level(result, severity_label):
+    """Helper to update a single SARIF result's effective level.
+
+    A result's own "level" takes precedence over the rule's
+    defaultConfiguration.level per the SARIF spec, so patching only the
+    rule (as _update_rule_severity does) has no effect on which alerts a
+    level-based gate (e.g. alerts_threshold) sees.
+    """
+    result["level"] = SEVERITY_TO_LEVEL.get(severity_label, "note")
+
 def _process_sarif_runs(runs, severity_map):
     """Helper to iterate through runs and apply severity map."""
     updates_count = 0
@@ -71,19 +81,32 @@ def _process_sarif_runs(runs, severity_map):
 
         for rule in rules:
             rule_id = rule.get("id")
-            
+
             # Guard clause: Skip if no rule ID or not a Checkov rule
             if not rule_id or not rule_id.startswith(("CKV_", "CKV2_")):
                 continue
-            
+
             # Guard clause: Track missing mappings
             if rule_id not in severity_map:
                 missing_ids.add(rule_id)
                 continue
-                
+
             severity_label = severity_map[rule_id]
             _update_rule_severity(rule, severity_label)
             updates_count += 1
+
+        for result in run.get("results", []):
+            rule_id = result.get("ruleId")
+
+            # Guard clause: Skip if no rule ID or not a Checkov rule
+            if not rule_id or not rule_id.startswith(("CKV_", "CKV2_")):
+                continue
+
+            # Guard clause: Skip results with no mapped severity
+            if rule_id not in severity_map:
+                continue
+
+            _update_result_level(result, severity_map[rule_id])
 
     return updates_count, missing_ids
 
