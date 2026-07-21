@@ -10,6 +10,7 @@ SARIF_DIR_NAME = os.environ.get("SARIF_DIR", "results.sarif")
 SARIF_DIR_PATH = CWD / SARIF_DIR_NAME
 
 CSV_MAP_FILE = "checkout-checkov-mapping-updates/checkov_map.csv"
+MANUAL_CSV_MAP_FILE = "checkout-central-checkov-policies/checkov_map_manual.csv"
 
 SEVERITY_TO_SCORE = {
     "INFO": "0.0",
@@ -36,21 +37,33 @@ def load_severity_map(csv_path):
     with open(csv_path, 'r', encoding='utf-8') as f:
         reader = csv.reader(f)
         for row in reader:
-            if len(row) < 2:
+            if not row or row[0].strip().startswith("#") or len(row) < 2:
                 continue
-            
+
             rule_id = row[0].strip()
             severity_text = row[1].strip().upper()
 
             # GHA doesn't have an INFO severity level, so substitute for LOW
             if severity_text == "INFO":
                 severity_text = "LOW"
-            
+
             if severity_text in SEVERITY_TO_SCORE:
                 mapping[rule_id] = severity_text
-                
-    print(f"Loaded {len(mapping)} rules from Checkov CSV file")
+
+    print(f"Loaded {len(mapping)} rules from {csv_path}")
     return mapping
+
+def load_combined_severity_map():
+    """Auto-generated map, enriched with manual entries for IDs it doesn't cover yet.
+
+    Manual entries only fill gaps - they never override an ID already present
+    in the auto-generated map.
+    """
+    severity_map = load_severity_map(CSV_MAP_FILE)
+    manual_map = load_severity_map(MANUAL_CSV_MAP_FILE)
+    for rule_id, severity in manual_map.items():
+        severity_map.setdefault(rule_id, severity)
+    return severity_map
 
 def _update_rule_severity(rule, severity_label):
     """Helper to update a single SARIF rule dict."""
@@ -180,8 +193,8 @@ def update_text_report(input_path, output_path, severity_map):
 def main():
     print("Updating SARIF and TXT files")
     
-    severity_map = load_severity_map(CSV_MAP_FILE)
-    
+    severity_map = load_combined_severity_map()
+
     if not severity_map:
         print("Severity map invalid or missing")
         return

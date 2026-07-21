@@ -7,6 +7,7 @@ from pathlib import Path
 CWD = Path(os.getcwd())
 
 CSV_MAP_FILE = "checkout-checkov-mapping-updates/checkov_map.csv"
+MANUAL_CSV_MAP_FILE = "checkout-central-checkov-policies/checkov_map_manual.csv"
 
 BLOCKING_SEVERITIES = {"HIGH", "CRITICAL"}
 
@@ -19,15 +20,27 @@ def load_severity_map(csv_path):
     with open(csv_path, 'r', encoding='utf-8') as f:
         reader = csv.reader(f)
         for row in reader:
-            if len(row) < 2:
+            if not row or row[0].strip().startswith("#") or len(row) < 2:
                 continue
 
             rule_id = row[0].strip()
             severity_text = row[1].strip().upper()
             mapping[rule_id] = severity_text
 
-    print(f"Loaded {len(mapping)} rules from Checkov CSV file")
+    print(f"Loaded {len(mapping)} rules from {csv_path}")
     return mapping
+
+def load_combined_severity_map():
+    """Auto-generated map, enriched with manual entries for IDs it doesn't cover yet.
+
+    Manual entries only fill gaps - they never override an ID already present
+    in the auto-generated map.
+    """
+    severity_map = load_severity_map(CSV_MAP_FILE)
+    manual_map = load_severity_map(MANUAL_CSV_MAP_FILE)
+    for rule_id, severity in manual_map.items():
+        severity_map.setdefault(rule_id, severity)
+    return severity_map
 
 def _is_finding(result):
     """A SARIF result with no 'kind' defaults to 'fail' per the SARIF spec."""
@@ -86,7 +99,7 @@ def evaluate_dir(dir_name, severity_map, soft_fail_on):
     return blocking
 
 def main():
-    severity_map = load_severity_map(CSV_MAP_FILE)
+    severity_map = load_combined_severity_map()
 
     soft_fail_on = {
         check_id.strip()
