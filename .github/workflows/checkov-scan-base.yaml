@@ -172,7 +172,7 @@ jobs:
         id: checkov_scan
         uses: bridgecrewio/checkov-action@7b972723c44fb3d256283fac96fae5d7c1894bb7 # v12
         with:
-          output_format: cli,sarif
+          output_format: sarif
           quiet: true
           soft_fail: true
           directory: '.'
