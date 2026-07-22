@@ -168,11 +168,18 @@ jobs:
           ref: 'checkov-mapping-updates'
           path: 'checkout-checkov-mapping-updates'
 
+      - name: Generate stop-commands token
+        id: stopcmd
+        run: echo "token=stopcmd-$(date +%s%N)-$RANDOM" >> "$GITHUB_OUTPUT"
+
+      - name: Stop workflow command processing
+        run: echo "::stop-commands::${{ steps.stopcmd.outputs.token }}"
+
       - name: Run Checkov Scan
         id: checkov_scan
         uses: bridgecrewio/checkov-action@7b972723c44fb3d256283fac96fae5d7c1894bb7 # v12
         with:
-          output_format: sarif
+          output_format: cli,sarif
           quiet: true
           soft_fail: true
           directory: '.'
@@ -180,6 +187,10 @@ jobs:
           external_checks_dirs: central-checkov-policies
           skip_check: ${{ steps.resolve_exceptions.outputs.skip_check }}
           download_external_modules: ${{ inputs.download_external_modules }}
+
+      - name: Resume workflow command processing
+        if: always()
+        run: echo "::${{ steps.stopcmd.outputs.token }}::"
 
       - name: Set up Python
         uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # v4

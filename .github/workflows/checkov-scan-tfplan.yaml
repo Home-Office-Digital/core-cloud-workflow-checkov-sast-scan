@@ -215,12 +215,21 @@ jobs:
           TF_VAR_env_name: ${{ inputs.env_name }}
           env_name: ${{ inputs.env_name }}
 
+      - name: Generate stop-commands token (plan)
+        if: ${{ inputs.plan_role != '' }}
+        id: stopcmd_plan
+        run: echo "token=stopcmd-plan-$(date +%s%N)-$RANDOM" >> "$GITHUB_OUTPUT"
+
+      - name: Stop workflow command processing (plan)
+        if: ${{ inputs.plan_role != '' }}
+        run: echo "::stop-commands::${{ steps.stopcmd_plan.outputs.token }}"
+
       - name: Run Checkov Scan (Plan Files)
         if: ${{ inputs.plan_role != '' }}
         id: checkov_scan_plan
         uses: bridgecrewio/checkov-action@7b972723c44fb3d256283fac96fae5d7c1894bb7 # v12
         with:
-          output_format: sarif
+          output_format: cli,sarif
           quiet: true
           soft_fail: true
           directory: ${{ github.workspace }}/outputs/${{ inputs.path }}
@@ -228,6 +237,10 @@ jobs:
           external_checks_dirs: central-checkov-policies
           skip_check: ${{ steps.resolve_exceptions.outputs.skip_check }}
           download_external_modules: true
+
+      - name: Resume workflow command processing (plan)
+        if: ${{ always() && inputs.plan_role != '' }}
+        run: echo "::${{ steps.stopcmd_plan.outputs.token }}::"
 
       - name: Run Checkov Scan (FinOps policies only)
         if: ${{ inputs.plan_role != '' }}
@@ -243,11 +256,18 @@ jobs:
           download_external_modules: true
           check: CC_FINOPS_TAGS
 
+      - name: Generate stop-commands token (root)
+        id: stopcmd_root
+        run: echo "token=stopcmd-root-$(date +%s%N)-$RANDOM" >> "$GITHUB_OUTPUT"
+
+      - name: Stop workflow command processing (root)
+        run: echo "::stop-commands::${{ steps.stopcmd_root.outputs.token }}"
+
       - name: Run Checkov Scan
         id: checkov_scan
         uses: bridgecrewio/checkov-action@7b972723c44fb3d256283fac96fae5d7c1894bb7 # v12
         with:
-          output_format: sarif
+          output_format: cli,sarif
           quiet: true
           soft_fail: true
           directory: '.'
@@ -255,6 +275,10 @@ jobs:
           external_checks_dirs: central-checkov-policies
           skip_check: ${{ steps.resolve_exceptions.outputs.skip_check }}
           download_external_modules: ${{ inputs.download_external_modules }}
+
+      - name: Resume workflow command processing (root)
+        if: always()
+        run: echo "::${{ steps.stopcmd_root.outputs.token }}::"
 
       - name: Set up Python
         uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # v4

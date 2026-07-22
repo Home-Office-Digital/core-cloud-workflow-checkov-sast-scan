@@ -203,12 +203,23 @@ runs:
         TF_VAR_env_name: ${{ inputs.env_name }}
         env_name: ${{ inputs.env_name }}
 
+    - name: Generate stop-commands token
+      if: ${{ inputs.plan_role != '' }}
+      id: stopcmd
+      shell: bash
+      run: echo "token=stopcmd-$(date +%s%N)-$RANDOM" >> "$GITHUB_OUTPUT"
+
+    - name: Stop workflow command processing
+      if: ${{ inputs.plan_role != '' }}
+      shell: bash
+      run: echo "::stop-commands::${{ steps.stopcmd.outputs.token }}"
+
     - name: Run Checkov Scan (Plan Files)
       if: ${{ inputs.plan_role != '' }}
       id: checkov_scan_plan
       uses: bridgecrewio/checkov-action@7b972723c44fb3d256283fac96fae5d7c1894bb7 # v12
       with:
-        output_format: sarif
+        output_format: cli,sarif
         quiet: true
         soft_fail: true
         directory: ${{ github.workspace }}/outputs/${{ inputs.path }}
@@ -216,6 +227,11 @@ runs:
         external_checks_dirs: central-checkov-policies
         skip_check: ${{ steps.resolve_exceptions.outputs.skip_check }}
         download_external_modules: true
+
+    - name: Resume workflow command processing
+      if: ${{ always() && inputs.plan_role != '' }}
+      shell: bash
+      run: echo "::${{ steps.stopcmd.outputs.token }}::"
 
     - name: Set up Python
       uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # v4
