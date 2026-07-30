@@ -38,6 +38,11 @@ inputs:
     description: 'Max number of concurrent Terragrunt modules'
     required: false
     default: '4'
+  existing-plan-dir:
+    description: 'Path to a directory already containing a JSON plan representation (e.g. from --terragrunt-json-out-dir). When set, the internal Terragrunt Plan is skipped and this directory is scanned instead.'
+    required: false
+    type: string
+    default: ""
   EXEMPTIONS_APP_ID:
     description: Exemptions secret applied by the Core Cloud team when exceptions are approved and required.
     required: false
@@ -53,6 +58,7 @@ runs:
   using: 'composite'
   steps:
     - name: Checkout code
+      if: inputs.existing-plan-dir == ''
       uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
     - name: Checkout reusable workflow for custom policies
@@ -168,7 +174,7 @@ runs:
 
     - uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c # v4
       id: assume
-      if: ${{ inputs.plan_role != '' }}
+      if: ${{ inputs.plan_role != '' && inputs.existing-plan-dir == '' }}
       name: Configure AWS IdP Credentials
       with:
         role-to-assume: arn:aws:iam::${{ inputs.account_id }}:role/${{ inputs.plan_role }}
@@ -177,20 +183,20 @@ runs:
         aws-region: eu-west-2
 
     - name: Setup Terraform
-      if: ${{ inputs.plan_role != '' }}
+      if: ${{ inputs.plan_role != '' && inputs.existing-plan-dir == '' }}
       id: terraform_setup
       uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
 
     - name: Create output folder
       shell: bash
-      if: ${{ inputs.plan_role != '' }}
+      if: ${{ inputs.plan_role != '' && inputs.existing-plan-dir == '' }}
       id: create_output_folder
       run: mkdir -p $GITHUB_WORKSPACE/outputs/$PATH_INPUT
       env:
         PATH_INPUT: ${{ inputs.path }}
 
     - name: Terragrunt Plan
-      if: ${{ inputs.plan_role != '' }}
+      if: ${{ inputs.plan_role != '' && inputs.existing-plan-dir == '' }}
       id: terraform_plan
       uses: gruntwork-io/terragrunt-action@9559e51d05873b0ea467c42bbabcb5c067642ccc # v2
       with:
@@ -204,14 +210,14 @@ runs:
         env_name: ${{ inputs.env_name }}
 
     - name: Run Checkov Scan (Plan Files)
-      if: ${{ inputs.plan_role != '' }}
+      if: ${{ inputs.plan_role != '' || inputs.existing-plan-dir != '' }}
       id: checkov_scan_plan
       uses: bridgecrewio/checkov-action@7b972723c44fb3d256283fac96fae5d7c1894bb7 # v12
       with:
         output_format: cli,sarif
         quiet: true
         soft_fail: true
-        directory: ${{ github.workspace }}/outputs/${{ inputs.path }}
+        directory: ${{ inputs.existing-plan-dir != '' && inputs.existing-plan-dir || format('{0}/outputs/{1}', github.workspace, inputs.path) }}
         output_file_path: results-plan.sarif
         external_checks_dirs: central-checkov-policies
         skip_check: ${{ steps.resolve_exceptions.outputs.skip_check }}
@@ -224,26 +230,26 @@ runs:
 
     - name: Fix File Permissions (Plan files)
       shell: bash
-      if: ${{ inputs.plan_role != '' }}
+      if: ${{ inputs.plan_role != '' || inputs.existing-plan-dir != '' }}
       run: sudo chown -R $USER:$USER results-plan.sarif
 
     - name: Process SARIF file (Plan files)
       shell: bash
-      if: ${{ inputs.plan_role != '' }}
+      if: ${{ inputs.plan_role != '' || inputs.existing-plan-dir != '' }}
       run: python3 -u checkout-checkov-mapping-updates/scripts/update_via_map_file.py
       env:
         SARIF_DIRS: "results-plan.sarif"
 
     - name: Listing findings and severity levels (Plan files)
       shell: bash
-      if: ${{ inputs.plan_role != '' }}
+      if: ${{ inputs.plan_role != '' || inputs.existing-plan-dir != '' }}
       run: python3 -u checkout-checkov-mapping-updates/scripts/enforce_severity_gate.py
       env:
         SARIF_DIRS: "results-plan.sarif"
         SOFT_FAIL_ON: ${{ steps.resolve_exceptions.outputs.soft_fail_on }}
 
     - name: Determine commit SHA for SARIF upload
-      if: ${{ inputs.plan_role != '' && github.event_name == 'pull_request' }}
+      if: ${{ (inputs.plan_role != '' || inputs.existing-plan-dir != '') && github.event_name == 'pull_request' }}
       shell: bash
       run: |
         SHA=$(git cat-file -p HEAD | grep '^parent' | sed -n '2p' | awk '{print $2}')
@@ -256,7 +262,7 @@ runs:
         printf 'SARIF_COMMIT_SHA=%s\n' "$SHA" >> "$GITHUB_ENV"
 
     - name: Upload SARIF file (Plan Files)
-      if: ${{ inputs.plan_role != '' && (success() || failure()) }}
+      if: ${{ (inputs.plan_role != '' || inputs.existing-plan-dir != '') && (success() || failure()) }}
       uses: github/codeql-action/upload-sarif@641a925cfafe92d0fdf8b239ba4053e3f8d99d6d # v3
       with:
         sarif_file: 'results-plan.sarif'

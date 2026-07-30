@@ -33,6 +33,11 @@ on:
         required: false
         type: string
         default: '4'
+      existing-plan-dir:
+        description: 'Path to a directory already containing a JSON plan representation. When set, the internal Terragrunt Plan is skipped and this directory is scanned instead.'
+        required: false
+        type: string
+        default: ""
     secrets:
       account_id:
         required: false
@@ -68,5 +73,6 @@ jobs:
           TF_VAR_source-repo: ${{ inputs.TF_VAR_source-repo }}
           account_id: ${{ secrets.account_id }}
           terragrunt_parallelism: ${{ inputs.terragrunt_parallelism }}
+          existing-plan-dir: ${{ inputs.existing-plan-dir }}
           EXEMPTIONS_APP_ID: ${{ secrets.EXEMPTIONS_APP_ID }}
           EXEMPTIONS_APP_PRIVATE_KEY: ${{ secrets.EXEMPTIONS_APP_PRIVATE_KEY }}
