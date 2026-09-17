@@ -61,7 +61,7 @@ jobs:
           python -m pytest tests/ --cov=scripts --cov-report=xml
 
       - name: Sonarqube Composite Action
-        uses: Home-Office-Digital/core-cloud-workflow-sonarqube-scan@edf89ed883dbba9e7b2610aedf3a217c1896692f # 1.1.7
+        uses: Home-Office-Digital/core-cloud-workflow-sonarqube-scan@6338df7443d336b94e90ff8c71fba9ed258b1654 # 1.1.7
         with:
           sonar_token: ${{ secrets.sonar_token }}
           sonar_host_url: ${{ secrets.sonar_host_url }}
