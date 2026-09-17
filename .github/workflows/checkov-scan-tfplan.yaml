@@ -218,7 +218,7 @@ jobs:
       - name: Run Checkov Scan (Plan Files)
         if: ${{ inputs.plan_role != '' }}
         id: checkov_scan_plan
-        uses: bridgecrewio/checkov-action@7b972723c44fb3d256283fac96fae5d7c1894bb7 # v12
+        uses: bridgecrewio/checkov-action@a8664e3a0549367977f0cda990a34311835c87c0 # v12
         with:
           output_format: cli,sarif
           quiet: true
@@ -232,7 +232,7 @@ jobs:
       - name: Run Checkov Scan (FinOps policies only)
         if: ${{ inputs.plan_role != '' }}
         id: checkov_scan_finops
-        uses: bridgecrewio/checkov-action@7b972723c44fb3d256283fac96fae5d7c1894bb7 # v12
+        uses: bridgecrewio/checkov-action@a8664e3a0549367977f0cda990a34311835c87c0 # v12
         with:
           output_format: cli
           quiet: true
@@ -245,7 +245,7 @@ jobs:
 
       - name: Run Checkov Scan
         id: checkov_scan
-        uses: bridgecrewio/checkov-action@7b972723c44fb3d256283fac96fae5d7c1894bb7 # v12
+        uses: bridgecrewio/checkov-action@a8664e3a0549367977f0cda990a34311835c87c0 # v12
         with:
           output_format: cli,sarif
           quiet: true
