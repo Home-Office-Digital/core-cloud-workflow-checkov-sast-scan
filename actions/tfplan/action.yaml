@@ -59,10 +59,10 @@ runs:
   steps:
     - name: Checkout code
       if: inputs.existing-plan-dir == ''
-      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      uses: actions/checkout@v6
 
     - name: Checkout reusable workflow for custom policies
-      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      uses: actions/checkout@v6
       with:
         repository: '${{ inputs.org }}/core-cloud-workflow-checkov-sast-scan'
         ref: ${{ inputs.version-tag }}
@@ -166,7 +166,7 @@ runs:
         echo "soft_fail_on=${REPO_SOFT_FAIL_ON}" >> "$GITHUB_OUTPUT"
 
     - name: Checkout Checkov Map File
-      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      uses: actions/checkout@v6
       with:
         repository: '${{ inputs.org }}/core-cloud-workflow-checkov-sast-scan'
         ref: 'checkov-mapping-updates'
