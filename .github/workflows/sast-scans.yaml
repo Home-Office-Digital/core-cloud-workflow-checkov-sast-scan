@@ -34,7 +34,7 @@ permissions:
 
 jobs:
   checkov-scan:
-    uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/.github/workflows/checkov-scan-base.yaml@c85f81ba89d5332970b268d5532b6ceff35dbcad # 1.12.1
+    uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/.github/workflows/checkov-scan-base.yaml@feature/node-20-deprecation # 1.12.1
     with:
       runner: ${{ inputs.runner || 'ubuntu-latest' }}
     secrets:
