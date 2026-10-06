@@ -60,7 +60,7 @@ jobs:
     environment: ${{ inputs.env_name }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       
       - name: Run Checkov TFPlan Only Scan
         # Always bump this to the latest commit sha of the latest tag in a subsequent PR after your PR has been approved.
