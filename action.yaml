@@ -145,7 +145,7 @@ runs:
 
     - name: Run Checkov Scan
       id: checkov_scan
-      uses: bridgecrewio/checkov-action@7b972723c44fb3d256283fac96fae5d7c1894bb7 # v12
+      uses: bridgecrewio/checkov-action@7b1bd992e2c40a3404e3511944aeb8d014703d9a # v12
       with:
         output_format: cli,sarif
         quiet: true
@@ -199,7 +199,7 @@ runs:
 
     - name: Run Checkov Scan (FinOps policies only)
       id: checkov_scan_finops
-      uses: bridgecrewio/checkov-action@7b972723c44fb3d256283fac96fae5d7c1894bb7 # v12
+      uses: bridgecrewio/checkov-action@7b1bd992e2c40a3404e3511944aeb8d014703d9a # v12
       with:
         output_format: cli
         quiet: true
