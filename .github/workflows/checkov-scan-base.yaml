@@ -170,7 +170,7 @@ jobs:
 
       - name: Run Checkov Scan
         id: checkov_scan
-        uses: bridgecrewio/checkov-action@7b972723c44fb3d256283fac96fae5d7c1894bb7 # v12
+        uses: bridgecrewio/checkov-action@a76233b2c1d4a820a9dc68be350c473a4a9dceec # v12
         with:
           output_format: cli,sarif
           quiet: true
