@@ -30,7 +30,7 @@ The simplest config to use is:
 
      jobs:
        checkov-scan:
-         uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/.github/workflows/checkov-scan-base.yaml@1.5.0
+         uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/.github/workflows/checkov-scan-base.yaml@0e04e9756ce698d3e0fd993ea4d6235bbccff4bc # 1.22.0
 
 ## Implementation for Terraform Plan files and source code.
 
@@ -62,7 +62,7 @@ Add the above config into the following directory in your repository `.github/wo
      
      jobs:
        sast-checkov-scan-plan:
-         uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/.github/workflows/checkov-scan-tfplan.yaml@1.5.0
+         uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/.github/workflows/checkov-scan-tfplan.yaml@0e04e9756ce698d3e0fd993ea4d6235bbccff4bc # 1.22.0
          with:
            # Optional inputs depending on code structure
            path: 'e.g. terraform/environment/sandbox-ops-tooling'
@@ -101,7 +101,7 @@ Add the above config into the following directory in your repository `.github/wo
 
      jobs:
        sast-checkov-scan-tfplan-files:
-         uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/.github/workflows/checkov-scan-tfplan-only.yaml@1.14.0
+         uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/.github/workflows/checkov-scan-tfplan-only.yaml@0e04e9756ce698d3e0fd993ea4d6235bbccff4bc # 1.22.0
          with:
            # Optional inputs depending on code structure
            plan_role: '<role with permissions for generating a plan>'
@@ -145,7 +145,7 @@ If you wish to just add a step to your existing workflow logic, you can use the 
           runs-on: ubuntu-latest
           steps:  
             - name: Run Checkov Scan on the source code and existing plan files
-              uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan@1.5.0
+              uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan@0e04e9756ce698d3e0fd993ea4d6235bbccff4bc # 1.22.0
               with:
                 path: '.'
 
@@ -160,7 +160,7 @@ If you're calling one of the reusable workflows (`checkov-scan-base.yaml`, `chec
 
       jobs:
         checkov-scan:
-          uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/.github/workflows/checkov-scan-base.yaml@1.5.0
+          uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan/.github/workflows/checkov-scan-base.yaml@0e04e9756ce698d3e0fd993ea4d6235bbccff4bc # 1.22.0
           secrets:
             EXEMPTIONS_APP_ID: ${{ secrets.EXEMPTIONS_APP_ID }}
             EXEMPTIONS_APP_PRIVATE_KEY: ${{ secrets.EXEMPTIONS_APP_PRIVATE_KEY }}
@@ -172,7 +172,7 @@ If you're using the composite action directly:
           runs-on: ubuntu-latest
           steps:
             - name: Run Checkov Scan on the source code and existing plan files
-              uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan@1.5.0
+              uses: Home-Office-Digital/core-cloud-workflow-checkov-sast-scan@0e04e9756ce698d3e0fd993ea4d6235bbccff4bc # 1.22.0
               with:
                 path: '.'
                 EXEMPTIONS_APP_ID: ${{ secrets.EXEMPTIONS_APP_ID }}
