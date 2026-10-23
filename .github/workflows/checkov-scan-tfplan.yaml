@@ -259,7 +259,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: '3.8'
+          python-version: '3.10'
 
       - name: Fix File Permissions (Repository Root)
         run: sudo chown -R $USER:$USER results-root.sarif
