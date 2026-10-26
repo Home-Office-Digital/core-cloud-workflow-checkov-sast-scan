@@ -162,7 +162,7 @@ runs:
 
     - name: Fix File Permissions
       shell: bash
-      run: sudo chown -R $USER:$USER results.sarif
+      run: sudo chown -R "$(id -u):$(id -g)" results.sarif
 
     - name: Process SARIF file
       shell: bash

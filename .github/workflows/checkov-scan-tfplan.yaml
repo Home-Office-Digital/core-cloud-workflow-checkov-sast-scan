@@ -262,11 +262,11 @@ jobs:
           python-version: '3.14'
 
       - name: Fix File Permissions (Repository Root)
-        run: sudo chown -R $USER:$USER results-root.sarif
+        run: sudo chown -R "$(id -u):$(id -g)" results-root.sarif
 
       - name: Fix File Permissions (Plan files)
         if: ${{ inputs.plan_role != '' }}
-        run: sudo chown -R $USER:$USER results-plan.sarif
+        run: sudo chown -R "$(id -u):$(id -g)" results-plan.sarif
 
       - name: Process SARIF file (Repository Root)
         run: python3 -u checkout-checkov-mapping-updates/scripts/update_via_map_file.py

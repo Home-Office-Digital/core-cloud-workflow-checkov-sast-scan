@@ -231,7 +231,7 @@ runs:
     - name: Fix File Permissions (Plan files)
       shell: bash
       if: ${{ inputs.plan_role != '' || inputs.existing-plan-dir != '' }}
-      run: sudo chown -R $USER:$USER results-plan.sarif
+      run: sudo chown -R "$(id -u):$(id -g)" results-plan.sarif
 
     - name: Process SARIF file (Plan files)
       shell: bash
