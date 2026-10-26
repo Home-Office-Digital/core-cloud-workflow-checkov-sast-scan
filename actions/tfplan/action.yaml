@@ -226,12 +226,12 @@ runs:
     - name: Set up Python
       uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
       with:
-        python-version: '3.10'
+        python-version: '3.14'
 
     - name: Fix File Permissions (Plan files)
       shell: bash
       if: ${{ inputs.plan_role != '' || inputs.existing-plan-dir != '' }}
-      run: sudo chown -R $USER:$USER results-plan.sarif
+      run: sudo chown -R "$(id -u):$(id -g)" results-plan.sarif
 
     - name: Process SARIF file (Plan files)
       shell: bash
